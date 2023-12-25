@@ -1,3 +1,4 @@
+#pragma once
 
 #include <vector>
 
@@ -29,4 +30,6 @@ struct model
     void Train(const matrix& allInputs, const matrix& allTargets, const int epochs);
 
     std::vector<layer*> layers;
+
+    double loss;
 };

@@ -184,14 +184,13 @@ void model::Train(const matrix& allInputs, const matrix& allTargets, const int e
 
     for (int e=0; e < epochs; e++)
     {
-        double loss = 0;
+        loss = 0;
         for (int i=0 ; i < allInputs.size(); i++)
         {
             ForwardsPass(allInputs[i]);
             loss += BackwardsPass(allTargets[i], 0.1);
         }
-
-        if (e%20 == 0)
-            std::cout << "Epoch: " << e << " Loss: " << loss / allInputs.size() << " \n";
+        // if (e%20 == 0)
+        //     std::cout << "Epoch: " << e << " Loss: " << loss / allInputs.size() << " \n";
     }
 }

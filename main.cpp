@@ -2,7 +2,7 @@
 #include <random>
 
 #include "model.h"
-
+#include "render.h"
 
 int main(int, char**)
 {
@@ -16,17 +16,25 @@ int main(int, char**)
     };
 
     const matrix targets = {
-        {.1},
-        {.3},
-        {.5}
+        {.1,.2,.1},
+        {.3,.3,.3},
+        {.5,.5,.8}
     };
 
     model m;
     layer* l = m.AddLayer(2); // input layer
     l = m.AddLayer(3, l); // hiddenA
     l = m.AddLayer(2, l); // hiddenB
-    l = m.AddLayer(1, l); // output layer
+    l = m.AddLayer(3, l); // output layer
 
-    m.Train(inputs, targets, 100);
+    renderWindow rw;
 
+    bool running = 1;
+    while (running)
+    {
+        m.Train(inputs, targets, 100);
+
+        rw.ProcessEvents(running);
+        rw.Display(m.loss);
+    }
 }
