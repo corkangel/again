@@ -8,6 +8,7 @@
 typedef std::vector<double> column;
 typedef std::vector<column> matrix;
 
+// clamps the input between 0 and 1
 double activation_function(const double input)
 {
 	// sigmoid function
@@ -32,6 +33,7 @@ double cost_function_derivative(const double predicted, const double target)
     return predicted - target;
 }
 
+// returns a random between -1 and 1
 double random_value()
 {
     return ((rand() / 2000) - 1000) * 0.001;
@@ -113,6 +115,7 @@ void model_forward_pass(model& m, const column& inputs)
 
 int main(int, char**)
 {
+    // stable random values
     srand(101010101);
 
     const matrix inputs = {
