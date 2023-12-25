@@ -141,7 +141,14 @@ double model_backwards_pass(model& m, const column& targets, double learning_rat
                 // hidden layers
                 layer* nextLayer = m.layers[l + 1];
                 for (int k = 0; k < nextLayer->numNeurons; ++k)
-                    cost += nextLayer->weights[k][n] * deltas[k];
+                {
+                    // the error term associated with a neuron in the next layer
+                    const double errorTerm = deltas[k];
+
+                    // the weight connecting neuron k in the next layer to neuron n in the current layer
+                    const double connectionWeight = nextLayer->weights[k][n];
+                    cost += connectionWeight * errorTerm;
+                }
             }
 
             // Compute delta
@@ -203,6 +210,6 @@ int main(int, char**)
     l = m.AddLayer(2, l); // hiddenB
     l = m.AddLayer(1,l); // output layer
 
-    model_train(m, inputs, targets, 100);
+    model_train(m, inputs, targets, 1000);
 
 }
