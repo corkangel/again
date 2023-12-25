@@ -159,7 +159,7 @@ double model_backwards_pass(model& m, const column& targets, double learning_rat
             // Compute the delta/gradient
             currentLayer.gradients[n] = cost * activation_function_derivative(predicted);
 
-            // Update weights and biases
+            // Update weights
             for (int i = 0; i < currentLayer.previous->numNeurons; ++i)
             {
                 // the input is the activation value of the neuron in the previous layer
@@ -168,6 +168,7 @@ double model_backwards_pass(model& m, const column& targets, double learning_rat
                 currentLayer.weights[n][i] -= learning_rate * currentLayer.gradients[n] * input;
             }
 
+            // Update bias
             currentLayer.bias -= learning_rate * currentLayer.gradients[n]; // bias input is always 1, so is omitted
         }
     }
