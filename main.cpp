@@ -112,6 +112,67 @@ void model_forward_pass(model& m, const column& inputs)
         layer_forward_pass(*m.layers[l], m.layers[l-1]->activationValue);
 }
 
+double model_backwards_pass(model& m, const column& targets, double learning_rate)
+{
+    // the error in between the final layer and the targets
+    double accumlatedError = 0;
+
+    for (size_t l = m.layers.size()-1; l > 0; l--)
+    {
+        layer& currentLayer = *m.layers[l];
+
+        const size_t numNeurons = currentLayer.activationValue.size();
+        column deltas(numNeurons);
+        column costs(numNeurons, 0);
+
+        for (int n=0; n < numNeurons; n++)
+        {
+            const double predicted = currentLayer.activationValue[n];
+
+            if (l == m.layers.size()-1)
+            {
+                // output layer
+                const double target = targets[n];
+                costs[n] = cost_function_derivative(predicted, target);
+                accumlatedError += cost_function(predicted, target);
+            }
+            else
+            {
+                layer* nextLayer = m.layers[l + 1];
+                for (int k = 0; k < nextLayer->numNeurons; ++k)
+                    costs[n] += nextLayer->weights[k][n] * deltas[k];
+            }
+
+            // Compute delta
+            deltas[n] = costs[n] * activation_function_derivative(predicted);
+
+            // Update weights and biases
+            for (int i = 0; i < currentLayer.previous->numNeurons; ++i)
+                currentLayer.weights[n][i] -= learning_rate * deltas[n] * currentLayer.previous->activationValue[i];
+
+            currentLayer.bias -= learning_rate * deltas[n];
+        }
+    }
+
+    return accumlatedError;
+}
+
+
+void model_train(model& m, const matrix& allInputs, const matrix& allTargets, const int epochs)
+{
+    assert(allInputs.size() == allTargets.size());
+
+    for (int e=0; e < epochs; e++)
+    {
+        double loss = 0;
+        for (int i=0 ; i < allInputs.size(); i++)
+        {
+            model_forward_pass(m, allInputs[i]);
+            loss += model_backwards_pass(m, allTargets[i], 0.1);
+        }
+        std::cout << "Epoch: " << e << " Loss: " << loss / allInputs.size() << " \n";
+    }
+}
 
 int main(int, char**)
 {
@@ -124,7 +185,11 @@ int main(int, char**)
         {.2, .8}
     };
 
-    const column targets = {.2, .5, .7};
+    const matrix targets = {
+        {.4},
+        {.5},
+        {.7}
+    };
 
     model m;
     layer* l = m.AddLayer(2); // input layer
@@ -132,8 +197,6 @@ int main(int, char**)
     l = m.AddLayer(2, l); // hiddenB
     l = m.AddLayer(1,l); // output layer
 
-    for (auto&& input : inputs)
-        model_forward_pass(m, input);
+    model_train(m, inputs, targets, 100);
 
-    std::cout << "predicted: " << m.layers.back()->activationValue[0] << "\n";
 }
