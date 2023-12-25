@@ -122,7 +122,7 @@ double model_backwards_pass(model& m, const column& targets, double learning_rat
         layer& currentLayer = *m.layers[l];
 
         const size_t numNeurons = currentLayer.activationValue.size();
-        column deltas(numNeurons);
+        column gradients(numNeurons);
         double cost = 0;
 
         for (int n=0; n < numNeurons; n++)
@@ -134,6 +134,8 @@ double model_backwards_pass(model& m, const column& targets, double learning_rat
                 // output layer
                 const double target = targets[n];
                 cost = cost_function_derivative(predicted, target);
+
+                // this is just for reporting - not used in the calculations
                 accumlatedError += cost_function(predicted, target);
             }
             else
@@ -143,16 +145,17 @@ double model_backwards_pass(model& m, const column& targets, double learning_rat
                 for (int k = 0; k < nextLayer->numNeurons; ++k)
                 {
                     // the error term associated with a neuron in the next layer
-                    const double errorTerm = deltas[k];
+                    const double errorTerm = gradients[k];
 
                     // the weight connecting neuron k in the next layer to neuron n in the current layer
                     const double connectionWeight = nextLayer->weights[k][n];
+
                     cost += connectionWeight * errorTerm;
                 }
             }
 
-            // Compute delta
-            deltas[n] = cost * activation_function_derivative(predicted);
+            // Compute the delta/gradient
+            gradients[n] = cost * activation_function_derivative(predicted);
 
             // Update weights and biases
             for (int i = 0; i < currentLayer.previous->numNeurons; ++i)
@@ -160,10 +163,10 @@ double model_backwards_pass(model& m, const column& targets, double learning_rat
                 // the input is the activation value of the neuron in the previous layer
                 const double input = currentLayer.previous->activationValue[i];
 
-                currentLayer.weights[n][i] -= learning_rate * deltas[n] * input;
+                currentLayer.weights[n][i] -= learning_rate * gradients[n] * input;
             }
 
-            currentLayer.bias -= learning_rate * deltas[n];
+            currentLayer.bias -= learning_rate * gradients[n]; // bias input is always 1, so is omitted
         }
     }
 
