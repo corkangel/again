@@ -46,6 +46,7 @@ struct layer
      , previous(previous)
     {
         activationValue.resize(numNeurons);
+        gradients.resize(numNeurons);
 
         if (previous)
         {
@@ -64,6 +65,7 @@ struct layer
     layer* previous;
 
     column activationValue;
+    column gradients;
     matrix weights;
     double bias;
 };
@@ -122,7 +124,7 @@ double model_backwards_pass(model& m, const column& targets, double learning_rat
         layer& currentLayer = *m.layers[l];
 
         const size_t numNeurons = currentLayer.activationValue.size();
-        column gradients(numNeurons);
+        //column gradients(numNeurons);
         double cost = 0;
 
         for (int n=0; n < numNeurons; n++)
@@ -145,7 +147,7 @@ double model_backwards_pass(model& m, const column& targets, double learning_rat
                 for (int k = 0; k < nextLayer->numNeurons; ++k)
                 {
                     // the error term associated with a neuron in the next layer
-                    const double errorTerm = gradients[k];
+                    const double errorTerm = nextLayer->gradients[k];
 
                     // the weight connecting neuron k in the next layer to neuron n in the current layer
                     const double connectionWeight = nextLayer->weights[k][n];
@@ -155,7 +157,7 @@ double model_backwards_pass(model& m, const column& targets, double learning_rat
             }
 
             // Compute the delta/gradient
-            gradients[n] = cost * activation_function_derivative(predicted);
+            currentLayer.gradients[n] = cost * activation_function_derivative(predicted);
 
             // Update weights and biases
             for (int i = 0; i < currentLayer.previous->numNeurons; ++i)
@@ -163,10 +165,10 @@ double model_backwards_pass(model& m, const column& targets, double learning_rat
                 // the input is the activation value of the neuron in the previous layer
                 const double input = currentLayer.previous->activationValue[i];
 
-                currentLayer.weights[n][i] -= learning_rate * gradients[n] * input;
+                currentLayer.weights[n][i] -= learning_rate * currentLayer.gradients[n] * input;
             }
 
-            currentLayer.bias -= learning_rate * gradients[n]; // bias input is always 1, so is omitted
+            currentLayer.bias -= learning_rate * currentLayer.gradients[n]; // bias input is always 1, so is omitted
         }
     }
 
@@ -202,17 +204,17 @@ int main(int, char**)
     };
 
     const matrix targets = {
-        {.4},
-        {.5},
-        {.7}
+        {.4, .2, .1},
+        {.5, .4, .2},
+        {.7, .8, .6}
     };
 
     model m;
     layer* l = m.AddLayer(2); // input layer
     l = m.AddLayer(3, l); // hiddenA
     l = m.AddLayer(2, l); // hiddenB
-    l = m.AddLayer(1,l); // output layer
+    l = m.AddLayer(3,l); // output layer
 
-    model_train(m, inputs, targets, 1000);
+    model_train(m, inputs, targets, 100);
 
 }
