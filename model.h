@@ -2,25 +2,73 @@
 
 #include "utils.h"
 
+enum class ActivationFunction : short
+{
+    None,
+    Sigmoid,
+    Relu,
+    Softmax,
+    Last
+};
+
+using ActivationFunc = double (*)(const double);
+using ActivationFuncDerivative = double (*)(const double);
+
+enum class CostFunction : short
+{
+    None,
+    MSE,
+    RMSE,
+    Last
+};
+
+using CostFunc = double (*)(const double, const double);
+using CostFuncDerivative = double (*)(const double, const double);
+
 struct layer
 {
-    layer(int numNeurons, layer* previous = nullptr);
+    layer(int numNeurons);
+    ~layer() {}
 
-    void PopulateInput(const column& inputs);
-    void ForwardsPass(const column& inputs);
+    virtual void ForwardsPass(const column& inputs);
 
     const int numNeurons;
-    layer* previous;
 
     column activationValue;
     column gradients;
-    matrix weights;
+    matrix weights;    
     double bias;
+
+    ActivationFunc af;
+    ActivationFuncDerivative afD;
+
+    CostFunc cf;
+    CostFuncDerivative cfD;
+};
+
+struct denseLayer : layer
+{
+    denseLayer(
+        int numNeurons, 
+        ActivationFunction func,
+        CostFunction cFunc,
+        layer* previous = nullptr);
+
+    void ForwardsPass(const column& inputs) override;
+
+    ActivationFunction aFunc;
+    CostFunction cFunc;
 };
 
 struct model
 {
-    layer* AddLayer(int numNeurons, layer* previousLayer = nullptr);
+    layer* AddInputLayer(int numNeurons);
+
+    layer* AddDenseLayer(
+        int numNeurons, 
+        ActivationFunction aFunc, 
+        CostFunction cFunc,
+        layer* previousLayer);
 
     void ForwardsPass(const column& inputs);
     double BackwardsPass(const column& targets, double learning_rate);

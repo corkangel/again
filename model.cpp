@@ -5,47 +5,56 @@
 
 #include "model.h"
 
+// ------------------------------- activation functons -------------------------------
 
-// ------------------------------- utilities -------------------------------
-
-
-// clamps the input between 0 and 1
-double activation_function(const double input)
+double activation_function_sigmoid(const double input)
 {
-	// sigmoid function
 	return 1  / (1 + exp(-input));
-
-    // relu function
-   // return std::max(0.0, input);
 }
 
-double activation_function_derivative(const double input)
+double activation_function_sigmoid_derivative(const double input)
 {
-	// derivative of sigmoid function
-	const double df = activation_function(input);
+	const double df = activation_function_sigmoid(input);
 	return df * (1 - df);
-
-    // relu function
-    //return (input > 0.0) ? 1.0 : 0.0;
 }
 
-double cost_function(const double predicted, const double target)
+double activation_function_relu(const double input)
+{
+    return std::max(0.0, input);
+}
+
+double activation_function_relu_derivative(const double input)
+{
+    return (input > 0.0) ? 1.0 : 0.0;
+}
+
+// ------------------------------- cost functions -------------------------------
+
+double cost_function_mse(const double predicted, const double target)
 {
     // MSE cost function - whose derivative below is a simple addition!
     return 0.5 * pow((predicted - target), 2);
-
-    // RMSE
-    //return sqrt(0.5 * pow((predicted - target), 2));
 }
 
-double cost_function_derivative(const double predicted, const double target)
+double cost_function_mse_derivative(const double predicted, const double target)
 {
     // MSE
     return predicted - target;
-
-    // RMSE
-    //return (predicted - target) / sqrt(2.0);
 }
+
+double cost_function_rmse(const double predicted, const double target)
+{
+    // RMSE
+    return sqrt(0.5 * pow((predicted - target), 2));
+}
+
+double cost_function_rmse_derivative(const double predicted, const double target)
+{
+    // RMSE
+    return (predicted - target) / sqrt(2.0);
+}
+
+// ------------------------------- utils -------------------------------
 
 // returns a random between 0 and 1
 double random_value()
@@ -55,13 +64,30 @@ double random_value()
 
 // ------------------------------- layer -------------------------------
 
-layer::layer(int numNeurons, layer* previous)
+layer::layer(int numNeurons)
     : numNeurons(numNeurons)
-    , previous(previous)
 {
     activationValue.resize(numNeurons);
     gradients.resize(numNeurons);
+}
 
+void layer::ForwardsPass(const column& inputs)
+{
+    assert(numNeurons == inputs.size());
+    for (int n=0; n < numNeurons; n++)
+    {
+        activationValue[n] = inputs[n];
+    }    
+    bias = 1;
+}
+
+// ------------------------------- denseLayer -------------------------------
+
+denseLayer::denseLayer(int numNeurons, ActivationFunction aFunc, CostFunction cFunc,  layer* previous)
+    : layer(numNeurons)
+    , aFunc(aFunc)
+    , cFunc(cFunc)
+{
     if (previous)
     {
         weights.resize(numNeurons);
@@ -72,21 +98,57 @@ layer::layer(int numNeurons, layer* previous)
             for (int j=0; j < previous->numNeurons; j++)
                 weights[i][j] = random_value();
     }
+
     bias = random_value();
-}
 
-
-void layer::PopulateInput(const column& inputs)
-{
-    assert(numNeurons == inputs.size());
-    for (int n=0; n < numNeurons; n++)
+    switch (aFunc)
     {
-        activationValue[n] = inputs[n];
-    }    
-    bias = 1;
+        case ActivationFunction::Sigmoid:
+        {
+            af = activation_function_sigmoid;
+            afD = activation_function_sigmoid_derivative;
+            break;
+        }
+
+        case ActivationFunction::Relu:
+        {
+            af = activation_function_relu;
+            afD = activation_function_relu_derivative;
+            break;
+        }
+
+        default:
+        {
+            assert(0);
+            break;
+        }
+    }
+
+    switch (cFunc)
+    {
+        case CostFunction::MSE:
+        {
+            cf = cost_function_mse;
+            cfD = cost_function_rmse_derivative;
+            break;
+        }
+
+        case CostFunction::RMSE:
+        {
+            cf = cost_function_rmse;
+            cfD = cost_function_rmse_derivative;
+            break;
+        }
+
+        default:
+        {
+            assert(0);
+            break;
+        }
+    }
 }
 
-void layer::ForwardsPass(const column& inputs)
+void denseLayer::ForwardsPass(const column& inputs)
 {
     assert(weights[0].size() == inputs.size());
 
@@ -96,22 +158,33 @@ void layer::ForwardsPass(const column& inputs)
         for (int i=0; i < inputs.size(); i++)
             z += weights[n][i] * inputs[i];
 
-        activationValue[n] = activation_function(z);
+        activationValue[n] = af(z);
     }
 }
 
 // ------------------------------- model -------------------------------
 
-layer* model::AddLayer(int numNeurons, layer* previousLayer)
+layer* model::AddInputLayer(int numNeurons)
 {
-    layer* l = new layer(numNeurons, previousLayer);
+    layer* l = new layer(numNeurons);
+    layers.push_back(l);
+    return l;
+}
+
+layer* model::AddDenseLayer(
+    int numNeurons, 
+    ActivationFunction aFunc,
+    CostFunction cFunc,
+    layer* previousLayer)
+{
+    layer* l = new denseLayer(numNeurons, aFunc, cFunc, previousLayer);
     layers.push_back(l);
     return l;
 }
 
 void model::ForwardsPass(const column& inputs)
 {
-    layers.front()->PopulateInput(inputs);
+    layers.front()->ForwardsPass(inputs);
 
     for (int l=1; l < layers.size(); l++)
         layers[l]->ForwardsPass(layers[l-1]->activationValue);
@@ -122,7 +195,7 @@ void model::PredictSingleInput(const column& inputs, column& outputs)
     assert(inputs.size() == layers.front()->numNeurons);
     assert(outputs.size() == layers.back()->numNeurons);
 
-    layers.front()->PopulateInput(inputs);
+    layers.front()->ForwardsPass(inputs);
 
     for (int l=1; l < layers.size(); l++)
         layers[l]->ForwardsPass(layers[l-1]->activationValue);
@@ -140,6 +213,7 @@ double model::BackwardsPass(const column& targets, double learning_rate)
     for (size_t l = layers.size()-1; l > 0; l--)
     {
         layer& currentLayer = *layers[l];
+        layer& previousLayer = *layers[l-1];
 
         const size_t numNeurons = currentLayer.numNeurons;
         double cost = 0;
@@ -152,10 +226,10 @@ double model::BackwardsPass(const column& targets, double learning_rate)
             {
                 // output layer
                 const double target = targets[n];
-                cost = cost_function_derivative(predicted, target);
+                cost = currentLayer.cfD(predicted, target);
 
                 // this is just for reporting - not used in the calculations
-                accumlatedError += pow(cost_function(predicted, target),2);
+                accumlatedError += pow(currentLayer.cf(predicted, target),2);
             }
             else
             {
@@ -175,13 +249,13 @@ double model::BackwardsPass(const column& targets, double learning_rate)
             }
 
             // Compute the delta/gradient
-            currentLayer.gradients[n] = cost * activation_function_derivative(predicted);
+            currentLayer.gradients[n] = cost * currentLayer.afD(predicted);
 
             // Update weights
-            for (int i = 0; i < currentLayer.previous->numNeurons; ++i)
+            for (int i = 0; i < previousLayer.numNeurons; ++i)
             {
                 // the input is the activation value of the neuron in the previous layer
-                const double input = currentLayer.previous->activationValue[i];
+                const double input = previousLayer.activationValue[i];
 
                 currentLayer.weights[n][i] -= learning_rate * currentLayer.gradients[n] * input;
             }

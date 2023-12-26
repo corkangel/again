@@ -22,10 +22,10 @@ int main(int, char**)
     };
 
     model m;
-    layer* l = m.AddLayer(2); // input layer
-    //l = m.AddLayer(3, l); // hiddenA
-    l = m.AddLayer(4, l); // hiddenB
-    l = m.AddLayer(3, l); // output layer
+    layer* l = m.AddInputLayer(2); // input layer
+    //l = m.AddDenseLayer(2, ActivationFunction::Relu, CostFunction::RMSE, l); // hiddenA
+    l = m.AddDenseLayer(4, ActivationFunction::Sigmoid, CostFunction::MSE, l); // hiddenB
+    l = m.AddDenseLayer(3, ActivationFunction::Sigmoid, CostFunction::RMSE, l); // output layer
 
     renderWindow rw;
 
