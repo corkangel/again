@@ -10,7 +10,7 @@ int main(int, char**)
     srand(101010101);
 
     const matrix inputs = {
-        {0.1, 0.01},
+        {0.1, 0.4},
         {0.5, 0.01},
         {0.9, 0.01}
     };
@@ -22,15 +22,12 @@ int main(int, char**)
     };
 
     model m;
-    layer* l = m.AddInputLayer(2); // input layer
+    layer* l = m.AddInputLayer(2); // input layer (x,y)
     //l = m.AddDenseLayer(2, ActivationFunction::Relu, CostFunction::RMSE, l); // hiddenA
-    l = m.AddDenseLayer(4, ActivationFunction::Sigmoid, CostFunction::MSE, l); // hiddenB
-    l = m.AddDenseLayer(3, ActivationFunction::Sigmoid, CostFunction::RMSE, l); // output layer
+    l = m.AddDenseLayer(5, ActivationFunction::Sigmoid, CostFunction::MSE, l); // hiddenB
+    l = m.AddDenseLayer(3, ActivationFunction::Sigmoid, CostFunction::MSE, l); // output layer (r,g,b)
 
     renderWindow rw;
-
-    // re-used for each prediction
-    column ins(2); // (x,y)
 
      const int gridSize = 80;
      matrix outs(gridSize*gridSize);
@@ -46,6 +43,7 @@ int main(int, char**)
         {
             for (int x=0; x < gridSize; x++)
             {
+                column ins(2); // (x,y)
                 ins[0] = x*1.0/gridSize;
                 ins[1] = y*1.0/gridSize;
                 m.PredictSingleInput(ins, outs[y*gridSize+x]);                
