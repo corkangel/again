@@ -2,12 +2,14 @@
 
 #include <SFML/Graphics.hpp>
 
+#include "utils.h"
+
 class renderWindow
 {
   public:
     renderWindow::renderWindow() ;
 
-    void Display(const double loss);
+    void Display(const int epoch, const double loss, const int gridSize, matrix& values);
 
     void ProcessEvents(bool& running);
 
@@ -15,4 +17,6 @@ class renderWindow
     sf::Font font;
     sf::Text titleStr; 
     sf::Text lossStr; 
+
+    sf::RectangleShape rect;
 };

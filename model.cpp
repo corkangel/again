@@ -13,20 +13,20 @@
 double activation_function(const double input)
 {
 	// sigmoid function
-	return 1  / (1 + exp(-input));
+	//return 1  / (1 + exp(-input));
 
     // relu function
-    //return std::max(0.0, input);
+    return std::max(0.0, input);
 }
 
 double activation_function_derivative(const double input)
 {
 	// derivative of sigmoid function
-	const double df = activation_function(input);
-	return df * (1 - df);
+	//const double df = activation_function(input);
+	//return df * (1 - df);
 
     // relu function
-    //return (input > 0.0) ? 1.0 : 0.0;
+    return (input > 0.0) ? 1.0 : 0.0;
 }
 
 double cost_function(const double predicted, const double target)
@@ -44,7 +44,7 @@ double cost_function_derivative(const double predicted, const double target)
     return predicted - target;
 
     // RMSE
-   // return (predicted - target) / sqrt(2.0);
+    //return (predicted - target) / sqrt(2.0);
 }
 
 // returns a random between 0 and 1
@@ -117,6 +117,21 @@ void model::ForwardsPass(const column& inputs)
         layers[l]->ForwardsPass(layers[l-1]->activationValue);
 }
 
+void model::PredictSingleInput(const column& inputs, column& outputs)
+{
+    assert(inputs.size() == layers.front()->numNeurons);
+    assert(outputs.size() == layers.back()->numNeurons);
+
+    layers.front()->PopulateInput(inputs);
+
+    for (int l=1; l < layers.size(); l++)
+        layers[l]->ForwardsPass(layers[l-1]->activationValue);
+
+    const layer& outputLayer = *layers.back();
+    for (int i=0; i < outputLayer.numNeurons; i++)
+        outputs[i] = outputLayer.activationValue[i];
+}
+
 double model::BackwardsPass(const column& targets, double learning_rate)
 {
     // the error in between the final layer and the targets
@@ -175,10 +190,10 @@ double model::BackwardsPass(const column& targets, double learning_rate)
             currentLayer.bias -= learning_rate * currentLayer.gradients[n]; // bias input is always 1, so is omitted
         }
     }
-    return accumlatedError;
+    return accumlatedError*accumlatedError;
 }
 
-void model::Train(const matrix& allInputs, const matrix& allTargets, const int epochs)
+void model::Train(const matrix& allInputs, const matrix& allTargets, const int epochs, const double learningRate)
 {
     assert(allInputs.size() == allTargets.size());
 
@@ -188,9 +203,12 @@ void model::Train(const matrix& allInputs, const matrix& allTargets, const int e
         for (int i=0 ; i < allInputs.size(); i++)
         {
             ForwardsPass(allInputs[i]);
-            loss += BackwardsPass(allTargets[i], 0.1);
+            loss += BackwardsPass(allTargets[i], learningRate);
         }
-        // if (e%20 == 0)
-        //     std::cout << "Epoch: " << e << " Loss: " << loss / allInputs.size() << " \n";
+        loss = loss / allInputs.size() ;
+
+         if (e%20 == 0)
+             std::cout << "Epoch: " << e << " Loss: " << loss  << " \n";
     }
+    epoch += epochs;
 }

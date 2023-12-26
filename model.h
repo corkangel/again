@@ -1,9 +1,6 @@
 #pragma once
 
-#include <vector>
-
-typedef std::vector<double> column;
-typedef std::vector<column> matrix;
+#include "utils.h"
 
 struct layer
 {
@@ -27,9 +24,12 @@ struct model
 
     void ForwardsPass(const column& inputs);
     double BackwardsPass(const column& targets, double learning_rate);
-    void Train(const matrix& allInputs, const matrix& allTargets, const int epochs);
+    void Train(const matrix& allInputs, const matrix& allTargets, const int epochs, const double learningRate);
+
+    void PredictSingleInput(const column& inputs, column& outputs);
 
     std::vector<layer*> layers;
 
     double loss;
+    int epoch = 0;
 };
