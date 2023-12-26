@@ -10,9 +10,7 @@ enum class ActivationFunction : short
     Softmax,
     Last
 };
-
-using ActivationFunc = double (*)(const double);
-using ActivationFuncDerivative = double (*)(const double);
+using ActivationFuncPtr = double (*)(const double);
 
 enum class CostFunction : short
 {
@@ -21,9 +19,7 @@ enum class CostFunction : short
     RMSE,
     Last
 };
-
-using CostFunc = double (*)(const double, const double);
-using CostFuncDerivative = double (*)(const double, const double);
+using CostFuncPtr = double (*)(const double, const double);
 
 struct layer
 {
@@ -39,18 +35,18 @@ struct layer
     matrix weights;    
     double bias;
 
-    ActivationFunc af;
-    ActivationFuncDerivative afD;
+    ActivationFuncPtr af;
+    ActivationFuncPtr afD;
 
-    CostFunc cf;
-    CostFuncDerivative cfD;
+    CostFuncPtr cf;
+    CostFuncPtr cfD;
 };
 
 struct denseLayer : layer
 {
     denseLayer(
         int numNeurons, 
-        ActivationFunction func,
+        ActivationFunction aFunc,
         CostFunction cFunc,
         layer* previous = nullptr);
 

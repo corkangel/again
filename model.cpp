@@ -28,6 +28,13 @@ double activation_function_relu_derivative(const double input)
     return (input > 0.0) ? 1.0 : 0.0;
 }
 
+static ActivationFuncPtr activationFuncPtrs[4][2] = {
+    {nullptr, nullptr},
+    {activation_function_sigmoid, activation_function_sigmoid_derivative},
+    {activation_function_relu, activation_function_relu_derivative},
+    {nullptr, nullptr}
+};
+
 // ------------------------------- cost functions -------------------------------
 
 double cost_function_mse(const double predicted, const double target)
@@ -54,6 +61,13 @@ double cost_function_rmse_derivative(const double predicted, const double target
     return (predicted - target) / sqrt(2.0);
 }
 
+static CostFuncPtr costFuncPtrs[4][2] = {
+    {nullptr, nullptr},
+    {cost_function_mse, cost_function_mse_derivative},
+    {cost_function_rmse, cost_function_rmse_derivative},
+    {nullptr, nullptr}
+};
+
 // ------------------------------- utils -------------------------------
 
 // returns a random between 0 and 1
@@ -73,6 +87,7 @@ layer::layer(int numNeurons)
 
 void layer::ForwardsPass(const column& inputs)
 {
+    // blindly copy the input values
     assert(numNeurons == inputs.size());
     for (int n=0; n < numNeurons; n++)
     {
@@ -88,64 +103,23 @@ denseLayer::denseLayer(int numNeurons, ActivationFunction aFunc, CostFunction cF
     , aFunc(aFunc)
     , cFunc(cFunc)
 {
-    if (previous)
-    {
-        weights.resize(numNeurons);
-        for (auto&& w : weights)
-            w.resize(previous->numNeurons);
+    assert(previous);
 
-        for (int i=0; i < numNeurons; i++)
-            for (int j=0; j < previous->numNeurons; j++)
-                weights[i][j] = random_value();
-    }
+    weights.resize(numNeurons);
+    for (auto&& w : weights)
+        w.resize(previous->numNeurons);
+
+    for (int i=0; i < numNeurons; i++)
+        for (int j=0; j < previous->numNeurons; j++)
+            weights[i][j] = random_value();
 
     bias = random_value();
 
-    switch (aFunc)
-    {
-        case ActivationFunction::Sigmoid:
-        {
-            af = activation_function_sigmoid;
-            afD = activation_function_sigmoid_derivative;
-            break;
-        }
+    af = activationFuncPtrs[int(aFunc)][0];
+    afD = activationFuncPtrs[int(aFunc)][1];
 
-        case ActivationFunction::Relu:
-        {
-            af = activation_function_relu;
-            afD = activation_function_relu_derivative;
-            break;
-        }
-
-        default:
-        {
-            assert(0);
-            break;
-        }
-    }
-
-    switch (cFunc)
-    {
-        case CostFunction::MSE:
-        {
-            cf = cost_function_mse;
-            cfD = cost_function_rmse_derivative;
-            break;
-        }
-
-        case CostFunction::RMSE:
-        {
-            cf = cost_function_rmse;
-            cfD = cost_function_rmse_derivative;
-            break;
-        }
-
-        default:
-        {
-            assert(0);
-            break;
-        }
-    }
+    cf = costFuncPtrs[int(cFunc)][0];
+    cfD = costFuncPtrs[int(cFunc)][1];
 }
 
 void denseLayer::ForwardsPass(const column& inputs)
