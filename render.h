@@ -9,7 +9,15 @@ class renderWindow
   public:
     renderWindow::renderWindow() ;
 
-    void Display(const int epoch, const double loss, const int gridSize, matrix& values);
+    void Display(
+      const int epoch, 
+      const double loss,
+      const column& gradients,
+      const column& activations1,
+      const column& activations2,
+      const column& activations3,      
+      const int gridSize,
+      matrix& values);
 
     void ProcessEvents(bool& running);
 
@@ -17,6 +25,7 @@ class renderWindow
     sf::Font font;
     sf::Text titleStr; 
     sf::Text lossStr; 
+    sf::Text gradientStr; 
 
     sf::RectangleShape rect;
 };

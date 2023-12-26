@@ -10,21 +10,21 @@ int main(int, char**)
     srand(101010101);
 
     const matrix inputs = {
-        {0.1, 0.1},
-        {0.5, 0.5},
-        {0.9, 0.8}
+        {0.1, 0.01},
+        {0.5, 0.01},
+        {0.9, 0.01}
     };
 
     const matrix targets = {
-        {.9, .1, .9},
+        {.95, .1, .1},
         {.1, .9, .1},
-        {.3, .1, .9}
+        {.1, .1, .97}
     };
 
     model m;
     layer* l = m.AddLayer(2); // input layer
-    l = m.AddLayer(3, l); // hiddenA
-    l = m.AddLayer(6, l); // hiddenB
+    //l = m.AddLayer(3, l); // hiddenA
+    l = m.AddLayer(4, l); // hiddenB
     l = m.AddLayer(3, l); // output layer
 
     renderWindow rw;
@@ -40,7 +40,7 @@ int main(int, char**)
     bool running = 1;
     while (running)
     {
-        m.Train(inputs, targets, 100, 0.001);
+        m.Train(inputs, targets, 100, 0.1);
 
         for (int y=0; y < gridSize; y++)
         {
@@ -52,7 +52,20 @@ int main(int, char**)
             }
         }
 
+        column tmp1(3);
+        column tmp2(3);
+        column tmp3(3);
+        m.PredictSingleInput(inputs[0], tmp1);       
+        m.PredictSingleInput(inputs[1], tmp2);       
+        m.PredictSingleInput(inputs[2], tmp3);       
+
         rw.ProcessEvents(running);
-        rw.Display(m.epoch, m.loss, gridSize, outs);
+        rw.Display(
+            m.epoch,
+            m.loss, 
+            m.layers.back()->gradients, 
+            tmp1, tmp2, tmp3,
+            gridSize, 
+            outs);
     }
 }

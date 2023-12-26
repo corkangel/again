@@ -13,20 +13,20 @@
 double activation_function(const double input)
 {
 	// sigmoid function
-	//return 1  / (1 + exp(-input));
+	return 1  / (1 + exp(-input));
 
     // relu function
-    return std::max(0.0, input);
+   // return std::max(0.0, input);
 }
 
 double activation_function_derivative(const double input)
 {
 	// derivative of sigmoid function
-	//const double df = activation_function(input);
-	//return df * (1 - df);
+	const double df = activation_function(input);
+	return df * (1 - df);
 
     // relu function
-    return (input > 0.0) ? 1.0 : 0.0;
+    //return (input > 0.0) ? 1.0 : 0.0;
 }
 
 double cost_function(const double predicted, const double target)
@@ -141,8 +141,7 @@ double model::BackwardsPass(const column& targets, double learning_rate)
     {
         layer& currentLayer = *layers[l];
 
-        const size_t numNeurons = currentLayer.activationValue.size();
-        //column gradients(numNeurons);
+        const size_t numNeurons = currentLayer.numNeurons;
         double cost = 0;
 
         for (int n=0; n < numNeurons; n++)
@@ -156,7 +155,7 @@ double model::BackwardsPass(const column& targets, double learning_rate)
                 cost = cost_function_derivative(predicted, target);
 
                 // this is just for reporting - not used in the calculations
-                accumlatedError += cost_function(predicted, target);
+                accumlatedError += pow(cost_function(predicted, target),2);
             }
             else
             {
@@ -170,7 +169,8 @@ double model::BackwardsPass(const column& targets, double learning_rate)
                     // the weight connecting neuron k in the next layer to neuron n in the current layer
                     const double connectionWeight = nextLayer->weights[k][n];
 
-                    cost += connectionWeight * errorTerm;
+                    //NOTE: NOT cost += here!?
+                    cost = connectionWeight * errorTerm;
                 }
             }
 
@@ -190,7 +190,7 @@ double model::BackwardsPass(const column& targets, double learning_rate)
             currentLayer.bias -= learning_rate * currentLayer.gradients[n]; // bias input is always 1, so is omitted
         }
     }
-    return accumlatedError*accumlatedError;
+    return accumlatedError;
 }
 
 void model::Train(const matrix& allInputs, const matrix& allTargets, const int epochs, const double learningRate)
