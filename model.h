@@ -47,7 +47,6 @@ struct denseLayer : layer
     denseLayer(
         int numNeurons, 
         ActivationFunction aFunc,
-        CostFunction cFunc,
         layer* previous = nullptr);
 
     void ForwardsPass(const column& inputs) override;
@@ -63,7 +62,6 @@ struct model
     layer* AddDenseLayer(
         int numNeurons, 
         ActivationFunction aFunc, 
-        CostFunction cFunc,
         layer* previousLayer);
 
     void ForwardsPass(const column& inputs);

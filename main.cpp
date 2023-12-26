@@ -10,22 +10,21 @@ int main(int, char**)
     srand(101010101);
 
     const matrix inputs = {
-        {0.1, 0.4},
-        {0.5, 0.01},
-        {0.9, 0.01}
+        {0.1, 0.1},
+        {0.5, 0.1},
+        {0.9, 0.1}
     };
 
     const matrix targets = {
-        {.95, .1, .1},
+        {.95, .1, .1},         
         {.1, .9, .1},
-        {.1, .1, .97}
+        {.1, .1, .97}      
     };
 
     model m;
     layer* l = m.AddInputLayer(2); // input layer (x,y)
-    //l = m.AddDenseLayer(2, ActivationFunction::Relu, CostFunction::RMSE, l); // hiddenA
-    l = m.AddDenseLayer(5, ActivationFunction::Sigmoid, CostFunction::MSE, l); // hiddenB
-    l = m.AddDenseLayer(3, ActivationFunction::Sigmoid, CostFunction::MSE, l); // output layer (r,g,b)
+    l = m.AddDenseLayer(5, ActivationFunction::Sigmoid, l); // hiddenB
+    l = m.AddDenseLayer(3, ActivationFunction::Sigmoid, l); // output layer (r,g,b)
 
     renderWindow rw;
 

@@ -98,10 +98,10 @@ void layer::ForwardsPass(const column& inputs)
 
 // ------------------------------- denseLayer -------------------------------
 
-denseLayer::denseLayer(int numNeurons, ActivationFunction aFunc, CostFunction cFunc,  layer* previous)
+denseLayer::denseLayer(int numNeurons, ActivationFunction aFunc, layer* previous)
     : layer(numNeurons)
     , aFunc(aFunc)
-    , cFunc(cFunc)
+    , cFunc(CostFunction::MSE)
 {
     assert(previous);
 
@@ -148,10 +148,9 @@ layer* model::AddInputLayer(int numNeurons)
 layer* model::AddDenseLayer(
     int numNeurons, 
     ActivationFunction aFunc,
-    CostFunction cFunc,
     layer* previousLayer)
 {
-    layer* l = new denseLayer(numNeurons, aFunc, cFunc, previousLayer);
+    layer* l = new denseLayer(numNeurons, aFunc, previousLayer);
     layers.push_back(l);
     return l;
 }
@@ -247,16 +246,11 @@ void model::Train(const matrix& allInputs, const matrix& allTargets, const int e
 
     for (int e=0; e < epochs; e++)
     {
-        loss = 0;
-        for (int i=0 ; i < allInputs.size(); i++)
-        {
-            ForwardsPass(allInputs[i]);
-            loss += BackwardsPass(allTargets[i], learningRate);
-        }
-        loss = loss / allInputs.size() ;
+        // run just one of the inputs
+        int I = rand() % allInputs.size();
+        ForwardsPass(allInputs[I]);
+        loss = BackwardsPass(allTargets[I], learningRate);
 
-         if (e%20 == 0)
-             std::cout << "Epoch: " << e << " Loss: " << loss  << " \n";
     }
     epoch += epochs;
 }
