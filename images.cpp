@@ -8,41 +8,14 @@
 #include "model.h"
 #include "render.h"
 
-#include <windows.h>
-
-void ReadAll(unsigned char* buf, FILE* f, int sz)
-{
-    size_t pos = 0;
-    while (pos < sz)
-    {
-        size_t ret = fread(&buf[pos], 1, sz-pos, f);
-        if (ret)
-        {
-            pos += ret;
-        }
-        else
-        {
-            int e = feof(f);
-            int n = ferror(f);
-            n++;
-        }
-    }
-}
 
 int main(int, char**)
 {
     // stable random values
     srand(101010101);
 
-    TCHAR tszBuffer[1024];
-    DWORD dwRet;
-
-    dwRet = GetCurrentDirectory( MAX_PATH, tszBuffer );
-
-
     std::ifstream input("Resources/Data/data_batch_1.bin", std::ios::binary );
     std::vector<unsigned char> buffer(std::istreambuf_iterator<char>(input), {});
-
 
     model m;
     layer* l = m.AddInputLayer(2); // input layer (x,y)
@@ -50,7 +23,6 @@ int main(int, char**)
     l = m.AddDenseLayer(3, ActivationFunction::Sigmoid, l); // output layer (r,g,b)
 
     renderWindow rw;
-
 
     bool running = 1;
     while (running)
@@ -60,7 +32,7 @@ int main(int, char**)
         rw.ProcessEvents(running);
 
         rw.BeginDisplay();
-        rw.DisplayTitle(m.epoch, m.loss);
+        rw.DisplayTitle(m.epoch, 0, "Images");
 
         const int numImages = 20;
         for (int y=0; y < numImages; y++)

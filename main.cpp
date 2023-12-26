@@ -57,12 +57,14 @@ int main(int, char**)
         m.PredictSingleInput(inputs[2], tmp3);       
 
         rw.ProcessEvents(running);
-        rw.Display(
-            m.epoch,
-            m.loss, 
+
+        rw.BeginDisplay();
+        rw.DisplayTitle(m.epoch, m.loss, "Again");
+        rw.DisplayGrid(
             m.layers.back()->gradients, 
             tmp1, tmp2, tmp3,
             gridSize, 
             outs);
+        rw.EndDisplay();
     }
 }

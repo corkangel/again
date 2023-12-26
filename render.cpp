@@ -6,7 +6,6 @@ renderWindow::renderWindow()
     font.loadFromFile("Resources/Fonts/arial.ttf");
 
     titleStr.setFont(font);
-    titleStr.setString("Again!!!");
 
     lossStr.setFont(font);
     lossStr.setString("0");
@@ -16,11 +15,50 @@ renderWindow::renderWindow()
 
     rect.setSize(sf::Vector2f(8.0f, 8.0f));
     rect.setFillColor(sf::Color::White);
+
+    imageTexture.create(32,32);
+    imageSprite.setPosition(40,160);
+    pixels = new sf::Uint8[32 * 32 * 4];
+
 }
 
-void renderWindow::Display(
-    const int epoch, 
-    const double loss,
+void renderWindow::BeginDisplay()
+{
+    window.clear(sf::Color::Black);
+}
+
+void renderWindow::DisplayTitle(int epoch, double loss, const char* text)
+{
+    titleStr.setString(text);
+    window.draw(titleStr);
+
+    char buf[200];
+    snprintf(buf, sizeof(buf),  "Epoch: %d loss: %f", epoch, loss);
+    lossStr.setString(buf);
+    window.draw(lossStr);
+}
+
+void renderWindow::DisplayImage(
+    unsigned char* r,
+    unsigned char* g,
+    unsigned char* b,
+    int x, int y)
+{
+    for (int i=0; i < 1024; i++)
+    {
+        int o = i*4;
+        pixels[o+0] = r[i];
+        pixels[o+1] = g[i];
+        pixels[o+2] = b[i];
+        pixels[o+3] = 255;
+    }
+    imageTexture.update(pixels);
+    imageSprite.setTexture(imageTexture);
+    imageSprite.setPosition(x,y);
+    window.draw(imageSprite);
+}
+
+void renderWindow::DisplayGrid(
     const column& gradients,
     const column& activations1,
     const column& activations2,
@@ -28,15 +66,6 @@ void renderWindow::Display(
     const int gridSize,
     matrix& values)
 {
-    window.clear(sf::Color::Black);
-
-    window.draw(titleStr);
-
-    char buf[200];
-    snprintf(buf, sizeof(buf),  "Epoch: %d loss: %f", epoch, loss);
-    lossStr.setString(buf);
-    window.draw(lossStr);
-
     float tpos = 840.0f;
     float tdiff = 50.f;
     for (int g=0; g< gradients.size(); g++)
@@ -92,8 +121,10 @@ void renderWindow::Display(
             window.draw(rect);
         }
     }
+}
 
-
+void renderWindow::EndDisplay()
+{
     window.display();
 }
 
