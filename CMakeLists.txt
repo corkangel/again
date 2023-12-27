@@ -18,7 +18,10 @@ add_executable(images images.cpp model.cpp render.cpp)
 target_link_libraries(images PRIVATE sfml-graphics)
 target_compile_features(images PRIVATE cxx_std_17)
 
-install(TARGETS again images)
+add_executable(test test.cpp model.cpp)
+target_compile_features(images PRIVATE cxx_std_17)
+
+install(TARGETS again images test)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

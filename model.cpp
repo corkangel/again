@@ -28,10 +28,46 @@ double activation_function_relu_derivative(const double input)
     return (input > 0.0) ? 1.0 : 0.0;
 }
 
-static ActivationFuncPtr activationFuncPtrs[4][2] = {
+double activation_function_softmax(const double input)
+{
+    // just return the input, it'll be classified later
+    return input;
+}
+
+double activation_function_softwmax_derivative(const double input)
+{
+    // ??? TODO
+    return input;
+}
+
+// takes an array of all the inputs, not just a single input
+column softmax(const column& inputs) 
+{
+    double maxInput = *std::max_element(inputs.begin(), inputs.end());
+    column expValues(inputs.size());
+    double sumExpValues = 0.0;
+
+    // Compute the exponentials and sum them
+    for (size_t i = 0; i < inputs.size(); ++i) 
+    {
+        expValues[i] = exp(inputs[i] - maxInput);  // Subtract maxInput for numerical stability
+        sumExpValues += expValues[i];
+    }
+
+    // Normalize to get probabilities
+    for (double& val : expValues) {
+        assert(!isnan(val));
+        val /= sumExpValues;
+    }
+
+    return expValues;
+}
+
+static ActivationFuncPtr activationFuncPtrs[5][2] = {
     {nullptr, nullptr},
     {activation_function_sigmoid, activation_function_sigmoid_derivative},
     {activation_function_relu, activation_function_relu_derivative},
+    {activation_function_softmax, activation_function_softwmax_derivative},
     {nullptr, nullptr}
 };
 
@@ -51,20 +87,32 @@ double cost_function_mse_derivative(const double predicted, const double target)
 
 double cost_function_rmse(const double predicted, const double target)
 {
-    // RMSE
     return sqrt(0.5 * pow((predicted - target), 2));
 }
 
 double cost_function_rmse_derivative(const double predicted, const double target)
 {
-    // RMSE
     return (predicted - target) / sqrt(2.0);
 }
 
-static CostFuncPtr costFuncPtrs[4][2] = {
+double cost_function_crossEntropy(const double predicted, const double target)
+{
+    // un-used, since softmax is run over the entire array
+    assert(0);
+    return 0;
+}
+
+double cost_function_crossEntropy_derivative(const double predicted, const double target)
+{
+    // simplifies to simple addition!
+    return predicted - target;
+}
+
+static CostFuncPtr costFuncPtrs[5][2] = {
     {nullptr, nullptr},
     {cost_function_mse, cost_function_mse_derivative},
     {cost_function_rmse, cost_function_rmse_derivative},
+    {cost_function_crossEntropy, cost_function_crossEntropy_derivative},
     {nullptr, nullptr}
 };
 
@@ -80,6 +128,7 @@ double random_value()
 
 layer::layer(int numNeurons)
     : numNeurons(numNeurons)
+    , forClassification(false)
 {
     activationValue.resize(numNeurons);
     gradients.resize(numNeurons);
@@ -104,6 +153,12 @@ denseLayer::denseLayer(int numNeurons, ActivationFunction aFunc, layer* previous
     , cFunc(CostFunction::MSE)
 {
     assert(previous);
+
+    if (aFunc == ActivationFunction::Softmax)
+    {
+      forClassification = true;
+      cFunc = CostFunction::CrossEntropy;
+    }
 
     weights.resize(numNeurons);
     for (auto&& w : weights)
@@ -133,7 +188,16 @@ void denseLayer::ForwardsPass(const column& inputs)
             z += weights[n][i] * inputs[i];
 
         activationValue[n] = af(z);
+        //assert(!isnan(activationValue[n]) && !isinf(activationValue[n]) && activationValue[n] < 10000);
+        if ( activationValue[n] > 10000)
+        {
+            int d = 1;
+            d++;
+        }
     }
+
+    if (forClassification)
+        activationValue = softmax(activationValue);
 }
 
 // ------------------------------- model -------------------------------
@@ -199,10 +263,12 @@ double model::BackwardsPass(const column& targets, double learning_rate)
             {
                 // output layer
                 const double target = targets[n];
+
                 cost = currentLayer.cfD(predicted, target);
+                assert(!isnan(cost) && !isinf(cost));
 
                 // this is just for reporting - not used in the calculations
-                accumlatedError += pow(currentLayer.cf(predicted, target),2);
+                accumlatedError += pow(currentLayer.cfD(predicted, target),2);
             }
             else
             {
@@ -218,6 +284,7 @@ double model::BackwardsPass(const column& targets, double learning_rate)
 
                     //NOTE: NOT cost += here!?
                     cost = connectionWeight * errorTerm;
+                    assert(!isnan(cost) && !isinf(cost));
                 }
             }
 
@@ -231,6 +298,7 @@ double model::BackwardsPass(const column& targets, double learning_rate)
                 const double input = previousLayer.activationValue[i];
 
                 currentLayer.weights[n][i] -= learning_rate * currentLayer.gradients[n] * input;
+                assert(!isnan(currentLayer.weights[n][i]) && !isinf(currentLayer.weights[n][i]) && currentLayer.weights[n][i] < 10000);
             }
 
             // Update bias

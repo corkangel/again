@@ -17,6 +17,7 @@ enum class CostFunction : short
     None,
     MSE,
     RMSE,
+    CrossEntropy,
     Last
 };
 using CostFuncPtr = double (*)(const double, const double);
@@ -34,6 +35,7 @@ struct layer
     column gradients;
     matrix weights;    
     double bias;
+    bool forClassification;
 
     ActivationFuncPtr af;
     ActivationFuncPtr afD;
