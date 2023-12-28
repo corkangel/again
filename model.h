@@ -24,12 +24,12 @@ using CostFuncPtr = double (*)(const double, const double);
 
 struct layer
 {
-    layer(int numNeurons);
+    layer(uint32 numNeurons);
     ~layer() {}
 
     virtual void ForwardsPass(const column& inputs);
 
-    const int numNeurons;
+    const uint32 numNeurons;
 
     column activationValue;
     column gradients;
@@ -40,29 +40,29 @@ struct layer
     ActivationFuncPtr af;
     ActivationFuncPtr afD;
 
-    CostFuncPtr cf;
-    CostFuncPtr cfD;
+
 };
 
 struct denseLayer : layer
 {
     denseLayer(
-        int numNeurons, 
+        uint32 numNeurons, 
         ActivationFunction aFunc,
         layer* previous = nullptr);
 
     void ForwardsPass(const column& inputs) override;
 
     ActivationFunction aFunc;
-    CostFunction cFunc;
 };
 
 struct model
 {
-    layer* AddInputLayer(int numNeurons);
+    model();
+
+    layer* AddInputLayer(uint32 numNeurons);
 
     layer* AddDenseLayer(
-        int numNeurons, 
+        uint32 numNeurons, 
         ActivationFunction aFunc, 
         layer* previousLayer);
 
@@ -74,6 +74,10 @@ struct model
 
     std::vector<layer*> layers;
 
+    CostFunction cFunc;
+    CostFuncPtr cf;
+    CostFuncPtr cfD;
+    
     double loss;
     int epoch = 0;
 };

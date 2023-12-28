@@ -5,6 +5,21 @@
 
 #include "model.h"
 
+int argmax(const column& values)
+{
+    int index = 0;
+    double highest = -1000;
+    for(int i=0; i < values.size(); i++)
+    {
+        if (values[i] > highest)
+        {
+            highest = values[i];
+            index = i;
+        }
+    }
+    return index;
+}
+
 // ------------------------------- activation functons -------------------------------
 
 double activation_function_sigmoid(const double input)
@@ -126,7 +141,7 @@ double random_value()
 
 // ------------------------------- layer -------------------------------
 
-layer::layer(int numNeurons)
+layer::layer(uint32 numNeurons)
     : numNeurons(numNeurons)
     , forClassification(false)
 {
@@ -138,7 +153,7 @@ void layer::ForwardsPass(const column& inputs)
 {
     // blindly copy the input values
     assert(numNeurons == inputs.size());
-    for (int n=0; n < numNeurons; n++)
+    for (uint32 n=0; n < numNeurons; n++)
     {
         activationValue[n] = inputs[n];
     }    
@@ -147,25 +162,18 @@ void layer::ForwardsPass(const column& inputs)
 
 // ------------------------------- denseLayer -------------------------------
 
-denseLayer::denseLayer(int numNeurons, ActivationFunction aFunc, layer* previous)
+denseLayer::denseLayer(uint32 numNeurons, ActivationFunction aFunc, layer* previous)
     : layer(numNeurons)
     , aFunc(aFunc)
-    , cFunc(CostFunction::MSE)
 {
     assert(previous);
-
-    if (aFunc == ActivationFunction::Softmax)
-    {
-      forClassification = true;
-      cFunc = CostFunction::CrossEntropy;
-    }
 
     weights.resize(numNeurons);
     for (auto&& w : weights)
         w.resize(previous->numNeurons);
 
-    for (int i=0; i < numNeurons; i++)
-        for (int j=0; j < previous->numNeurons; j++)
+    for (uint32 i=0; i < numNeurons; i++)
+        for (uint32 j=0; j < previous->numNeurons; j++)
             weights[i][j] = random_value();
 
     bias = random_value();
@@ -173,15 +181,13 @@ denseLayer::denseLayer(int numNeurons, ActivationFunction aFunc, layer* previous
     af = activationFuncPtrs[int(aFunc)][0];
     afD = activationFuncPtrs[int(aFunc)][1];
 
-    cf = costFuncPtrs[int(cFunc)][0];
-    cfD = costFuncPtrs[int(cFunc)][1];
 }
 
 void denseLayer::ForwardsPass(const column& inputs)
 {
     assert(weights[0].size() == inputs.size());
 
-    for (int n=0; n < numNeurons; n++)
+    for (uint32 n=0; n < numNeurons; n++)
     {
         double z = bias;
         for (int i=0; i < inputs.size(); i++)
@@ -202,20 +208,52 @@ void denseLayer::ForwardsPass(const column& inputs)
 
 // ------------------------------- model -------------------------------
 
-layer* model::AddInputLayer(int numNeurons)
+const int MaxNeurons = 1000 * 1000;
+
+model::model()
+
 {
+    srand(999999);
+
+    cFunc = CostFunction::MSE;    
+    cf = costFuncPtrs[int(cFunc)][0];
+    cfD = costFuncPtrs[int(cFunc)][1];
+}
+
+layer* model::AddInputLayer(uint32 numNeurons)
+{
+    if (!layers.empty() || numNeurons > MaxNeurons)
+    {
+        return nullptr;
+    }
+
     layer* l = new layer(numNeurons);
     layers.push_back(l);
     return l;
 }
 
 layer* model::AddDenseLayer(
-    int numNeurons, 
+    uint32 numNeurons, 
     ActivationFunction aFunc,
     layer* previousLayer)
 {
+    if (layers.empty() || numNeurons > MaxNeurons || previousLayer == nullptr)
+    {
+        return nullptr;
+    }
+
     layer* l = new denseLayer(numNeurons, aFunc, previousLayer);
     layers.push_back(l);
+
+    if (aFunc == ActivationFunction::Softmax)
+    {
+        l->forClassification = true;
+
+        cFunc = CostFunction::CrossEntropy;    
+        cf = costFuncPtrs[int(cFunc)][0];
+        cfD = costFuncPtrs[int(cFunc)][1];
+    }
+
     return l;
 }
 
@@ -234,11 +272,11 @@ void model::PredictSingleInput(const column& inputs, column& outputs)
 
     layers.front()->ForwardsPass(inputs);
 
-    for (int l=1; l < layers.size(); l++)
+    for (uint32 l=1; l < layers.size(); l++)
         layers[l]->ForwardsPass(layers[l-1]->activationValue);
 
     const layer& outputLayer = *layers.back();
-    for (int i=0; i < outputLayer.numNeurons; i++)
+    for (uint32 i=0; i < outputLayer.numNeurons; i++)
         outputs[i] = outputLayer.activationValue[i];
 }
 
@@ -247,15 +285,15 @@ double model::BackwardsPass(const column& targets, double learning_rate)
     // the error in between the final layer and the targets
     double accumlatedError = 0;
 
-    for (size_t l = layers.size()-1; l > 0; l--)
+    for (uint32 l =uint32(layers.size()-1); l > 0; l--)
     {
         layer& currentLayer = *layers[l];
         layer& previousLayer = *layers[l-1];
 
-        const size_t numNeurons = currentLayer.numNeurons;
+        const uint32 numNeurons = currentLayer.numNeurons;
         double cost = 0;
 
-        for (int n=0; n < numNeurons; n++)
+        for (uint32 n=0; n < numNeurons; n++)
         {
             const double predicted = currentLayer.activationValue[n];
 
@@ -264,17 +302,17 @@ double model::BackwardsPass(const column& targets, double learning_rate)
                 // output layer
                 const double target = targets[n];
 
-                cost = currentLayer.cfD(predicted, target);
+                cost = cfD(predicted, target);
                 assert(!isnan(cost) && !isinf(cost));
 
                 // this is just for reporting - not used in the calculations
-                accumlatedError += pow(currentLayer.cfD(predicted, target),2);
+                accumlatedError += pow(cfD(predicted, target),2);
             }
             else
             {
                 // hidden layers
                 layer* nextLayer = layers[l + 1];
-                for (int k = 0; k < nextLayer->numNeurons; ++k)
+                for (uint32 k = 0; k < nextLayer->numNeurons; ++k)
                 {
                     // the error term associated with a neuron in the next layer
                     const double errorTerm = nextLayer->gradients[k];
@@ -292,7 +330,7 @@ double model::BackwardsPass(const column& targets, double learning_rate)
             currentLayer.gradients[n] = cost * currentLayer.afD(predicted);
 
             // Update weights
-            for (int i = 0; i < previousLayer.numNeurons; ++i)
+            for (uint32 i = 0; i < previousLayer.numNeurons; ++i)
             {
                 // the input is the activation value of the neuron in the previous layer
                 const double input = previousLayer.activationValue[i];
