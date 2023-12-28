@@ -206,6 +206,78 @@ void denseLayer::ForwardsPass(const column& inputs)
         activationValue = softmax(activationValue);
 }
 
+
+double layer::BackwardsPass(
+    const layer& previousLayer,
+    const layer* nextLayer,
+    const double learning_rate,
+    const column& targets,
+    CostFuncPtr cf,
+    CostFuncPtr cfD)
+{
+    double err = 0;
+    double derivativeOfCost = 0;
+
+    for (uint32 n=0; n < numNeurons; n++)
+    {
+        const double predicted = activationValue[n];
+        
+        if (nextLayer == nullptr)
+        {
+            // this is the output layer
+            assert(targets.size() == numNeurons);
+            const double target = targets[n];
+
+            err += cf(predicted, target);
+            derivativeOfCost = cfD(predicted, target);
+            assert(!isnan(derivativeOfCost) && !isinf(derivativeOfCost));
+
+            // this is just for reporting - not used in the calculations
+            //accumlatedError += pow(cfD(predicted, target),2);
+        }
+        else
+        {
+            // hidden layers
+            for (uint32 k = 0; k < nextLayer->numNeurons; ++k)
+            {
+                // the error term associated with a neuron in the next layer
+                const double errorTerm = nextLayer->gradients[k];
+
+                // the weight connecting neuron k in the next layer to neuron n in the current layer
+                const double connectionWeight = nextLayer->weights[k][n];
+
+                //NOTE: NOT cost += here!?
+                derivativeOfCost = connectionWeight * errorTerm;
+                assert(!isnan(derivativeOfCost) && !isinf(derivativeOfCost));
+            }
+        }
+
+        // Compute the delta/gradient
+        gradients[n] = derivativeOfCost ;//* afD(predicted);
+
+        // Update weights
+        for (uint32 i = 0; i < previousLayer.numNeurons; ++i)
+        {
+            // the input is the activation value of the neuron in the previous layer
+            const double input = previousLayer.activationValue[i];
+
+            weights[n][i] -= learning_rate * gradients[n] * input;
+            assert(!isnan(weights[n][i]) && !isinf(weights[n][i]) && weights[n][i] < 10000);
+
+            // if (l==1 && n == 0 && i == 0)
+            // {
+            //     printf("weight zero: p:%.4f w:%.4f g:%.4f\n", 
+            //             activationValue[n],
+            //         weights[n][i], 
+            //         gradients[n]);
+            // }
+        }
+
+        // Update bias
+        bias -= learning_rate * gradients[n]; // bias input is always 1, so is omitted
+    }
+    return err;
+}
 // ------------------------------- model -------------------------------
 
 const int MaxNeurons = 1000 * 1000;
@@ -285,63 +357,17 @@ double model::BackwardsPass(const column& targets, double learning_rate)
     // the error in between the final layer and the targets
     double accumlatedError = 0;
 
-    for (uint32 l =uint32(layers.size()-1); l > 0; l--)
+    layer* outputLayer = layers.back();
+    accumlatedError += outputLayer->BackwardsPass(*layers[layers.size()-2], nullptr, learning_rate, targets, cf, cfD);
+
+    // other layers
+    for (uint32 l =uint32(layers.size()-2); l > 0; l--)
     {
+        column targets; // un-used
         layer& currentLayer = *layers[l];
         layer& previousLayer = *layers[l-1];
-
-        const uint32 numNeurons = currentLayer.numNeurons;
-        double cost = 0;
-
-        for (uint32 n=0; n < numNeurons; n++)
-        {
-            const double predicted = currentLayer.activationValue[n];
-
-            if (l == layers.size()-1)
-            {
-                // output layer
-                const double target = targets[n];
-
-                cost = cfD(predicted, target);
-                assert(!isnan(cost) && !isinf(cost));
-
-                // this is just for reporting - not used in the calculations
-                accumlatedError += pow(cfD(predicted, target),2);
-            }
-            else
-            {
-                // hidden layers
-                layer* nextLayer = layers[l + 1];
-                for (uint32 k = 0; k < nextLayer->numNeurons; ++k)
-                {
-                    // the error term associated with a neuron in the next layer
-                    const double errorTerm = nextLayer->gradients[k];
-
-                    // the weight connecting neuron k in the next layer to neuron n in the current layer
-                    const double connectionWeight = nextLayer->weights[k][n];
-
-                    //NOTE: NOT cost += here!?
-                    cost = connectionWeight * errorTerm;
-                    assert(!isnan(cost) && !isinf(cost));
-                }
-            }
-
-            // Compute the delta/gradient
-            currentLayer.gradients[n] = cost * currentLayer.afD(predicted);
-
-            // Update weights
-            for (uint32 i = 0; i < previousLayer.numNeurons; ++i)
-            {
-                // the input is the activation value of the neuron in the previous layer
-                const double input = previousLayer.activationValue[i];
-
-                currentLayer.weights[n][i] -= learning_rate * currentLayer.gradients[n] * input;
-                assert(!isnan(currentLayer.weights[n][i]) && !isinf(currentLayer.weights[n][i]) && currentLayer.weights[n][i] < 10000);
-            }
-
-            // Update bias
-            currentLayer.bias -= learning_rate * currentLayer.gradients[n]; // bias input is always 1, so is omitted
-        }
+        layer* nextLayer = layers[l+1];
+        accumlatedError += currentLayer.BackwardsPass(previousLayer, nextLayer, learning_rate, targets, cf, cfD);
     }
     return accumlatedError;
 }

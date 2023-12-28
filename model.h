@@ -29,6 +29,14 @@ struct layer
 
     virtual void ForwardsPass(const column& inputs);
 
+    double BackwardsPass(
+        const layer& previousLayer,
+        const layer* nextLayer,
+        const double learning_rate,
+        const column& targets,
+        CostFuncPtr cf,
+        CostFuncPtr cfD);
+
     const uint32 numNeurons;
 
     column activationValue;
@@ -77,7 +85,7 @@ struct model
     CostFunction cFunc;
     CostFuncPtr cf;
     CostFuncPtr cfD;
-    
+
     double loss;
     int epoch = 0;
 };
