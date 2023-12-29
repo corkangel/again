@@ -234,7 +234,7 @@ void initNumbers()
 
 double trainNumbers(model& m, uint32 numEpochs)
 {
-    m.Train(numbersBatchDoubles, numbersBatchIntegers, numEpochs, 0.1);
+    m.Train(numbersBatchDoubles, numbersBatchIntegers, numEpochs, 0.02);
 
     double loss = 0;
     column predictions(1);
@@ -255,11 +255,11 @@ bool train()
 
     layer* l = m.AddInputLayer(1);
     l = m.AddDenseLayer(2, ActivationFunction::Sigmoid, l);
-    l = m.AddDenseLayer(1, ActivationFunction::Sigmoid, l);
+    l = m.AddDenseLayer(1, ActivationFunction::Relu, l);
 
-    for (uint32 i=0; i < 10; i++)
+    for (uint32 i=0; i < 50; i++)
     {
-        double loss = trainNumbers(m, 1000);
+        double loss = trainNumbers(m, 10);
         printf("train numbers loss: %f\n", loss);
     }
 

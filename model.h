@@ -41,9 +41,8 @@ struct layer
 
     column activationValue;
     column gradients;
-    matrix weights; //tmp    
+    matrix weights;
     double bias;
-    double weight;
     bool forClassification;
 
     ActivationFuncPtr af;

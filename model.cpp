@@ -177,7 +177,6 @@ denseLayer::denseLayer(uint32 numNeurons, ActivationFunction aFunc, layer* previ
             weights[i][j] = random_value();
 
     bias = random_value();
-    weight = random_value();;
 
     af = activationFuncPtrs[int(aFunc)][0];
     afD = activationFuncPtrs[int(aFunc)][1];
@@ -221,8 +220,7 @@ double layer::BackwardsPass(
         if (nextLayer == nullptr)
         {
            // this is the output layer
-            const double target = targets[n];
-           err = cfD(predicted, target);
+           err = cfD(predicted, targets[n]);
         }
         else
         {
@@ -246,116 +244,15 @@ double layer::BackwardsPass(
             const double input = previousLayer.activationValue[i];
 
             weights[n][i] -= learning_rate * gradients[n] * input;
-            assert(!isnan(weights[n][i]) && !isinf(weights[n][i]) && weights[n][i] < 10000);
+            assert(!isnan(weights[n][i]) && !isinf(weights[n][i]) && weights[n][i] < 100000);
         }
 
         // Update bias
         bias -= learning_rate * gradients[n]; // bias input is always 1, so is omitted
     }
-
-    return accumulatedError / numNeurons;
-
-
-    // // code for a single weight
-
-    // double dw = 0;
-    // double db = 0;
-
-    // for (uint32 n=0; n < numNeurons; n++)
-    // {
-    //     const double predicted = activationValue[n];
-    //     const double target = targets[n];
-
-    //     //dw += -2 * predicted * (target - (weight * predicted + bias));
-
-    //     for (uint32 k = 0; k < previousLayer.numNeurons; ++k)
-    //     {
-    //         dw += -2 * predicted * (target - (weights[k][n] * predicted + bias));
-    //         db += -2 * (target - (weights[k][n] * predicted + bias));
-    //     }
-    // }
-
-    // weight = weight - (1/double(numNeurons)) * dw * learning_rate;
-    // bias = bias - (1/double(numNeurons)) * db * learning_rate;
-
-    // // calculate average loss
-    // double totalError = 0;
-    // for (uint32 n=0; n < numNeurons; n++)
-    // {
-    //     totalError += pow(targets[n] - (weight * activationValue[n] * bias),2);
-    // }
-    // double avgLoss = totalError / numNeurons;
-
-
-    // double err = 0;
-    // double derivativeOfCost = 0;
-
-    // for (uint32 n=0; n < numNeurons; n++)
-    // {
-    //     const double predicted = activationValue[n];
-        
-    //     double dw = -2 * ()
-
-    //     // calculate gradients
-    //     if (nextLayer == nullptr)
-    //     {
-    //         // this is the output layer
-    //         assert(targets.size() == numNeurons);
-    //         const double target = targets[n];
-
-    //         err += cf(predicted, target);
-
-    //         derivativeOfCost = cfD(predicted, target);
-    //         assert(!isnan(derivativeOfCost) && !isinf(derivativeOfCost));
-
-    //         gradients[n] = afD(predicted);
-    //     }
-    //     else
-    //     {
-    //         // hidden layers
-    //         c
-    //         {
-    //             // the error term associated with a neuron in the next layer
-    //             const double errorTerm = nextLayer->gradients[k];
-
-    //             // the weight connecting neuron k in the next layer to neuron n in the current layer
-    //             const double connectionWeight = nextLayer->weights[k][n];
-
-    //             //NOTE: NOT cost += here!?
-    //             derivativeOfCost = connectionWeight * errorTerm;
-    //             assert(!isnan(derivativeOfCost) && !isinf(derivativeOfCost));
-
-    //              gradients[n] = derivativeOfCost ;//* afD(predicted);
-    //         }
-    //     }
-
-    //     // Compute the delta/gradient
-    //     //gradients[n] = derivativeOfCost ;//* afD(predicted);
-
-    //     // Update weights
-    //     for (uint32 i = 0; i < previousLayer.numNeurons; ++i)
-    //     {
-    //         // the input is the activation value of the neuron in the previous layer
-    //         const double input = previousLayer.activationValue[i];
-
-    //         weights[n][i] -= learning_rate * gradients[n] * input;
-    //         assert(!isnan(weights[n][i]) && !isinf(weights[n][i]) && weights[n][i] < 10000);
-
-    //         // if (l==1 && n == 0 && i == 0)
-    //         // {
-    //         //     printf("weight zero: p:%.4f w:%.4f g:%.4f\n", 
-    //         //             activationValue[n],
-    //         //         weights[n][i], 
-    //         //         gradients[n]);
-    //         // }
-    //     }
-
-    //     // Update bias
-    //     bias -= learning_rate * gradients[n]; // bias input is always 1, so is omitted
-    // }
-    //double err = 0;
-    //return err;
+    return accumulatedError / numNeurons; //MSE
 }
+
 // ------------------------------- model -------------------------------
 
 const int MaxNeurons = 1000 * 1000;
