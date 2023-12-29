@@ -10,22 +10,38 @@ int main(int, char**)
     srand(101010101);
 
     const matrix inputs = {
-        {0.1, 0.1},
-        {0.5, 0.5},
-        {0.9, 0.1},
-        {0.7, 0.1},        
+        {.1, .1},
+        {.9, .1},
+        {.9, .9},
+        {.1, .9},
+        {.1, .5},
+        {.9, .5},
+        {.5, .1},
+        {.5, .9},                
+        {.3, .2},
+        {.7, .2},
+        {.3, .7},
+        {.7, .7},             
     };
 
     const matrix targets = {
         {.95, .1, .1},         
-        {.1, .9, .1},
-        {.1, .1, .97},
-        {.95, .1, .1},                 
+        {.95, .1, .1},         
+        {.95, .1, .1},         
+        {.95, .1, .1},         
+        {.95, .1, .1},         
+        {.95, .1, .1},         
+        {.95, .1, .1},         
+        {.95, .1, .1},                                  
+        {.1, .99, .1},
+        {.1, .99, .1},        
+        {.1, .1, .97},                 
+        {.1, .1, .97},                         
     };
 
     model m;
     layer* l = m.AddInputLayer(2); // input layer (x,y)
-    l = m.AddDenseLayer(5, ActivationFunction::Sigmoid, l); // hiddenB
+    l = m.AddDenseLayer(8, ActivationFunction::Sigmoid, l); // hiddenB
     l = m.AddDenseLayer(3, ActivationFunction::Sigmoid, l); // output layer (r,g,b)
 
     renderWindow rw;

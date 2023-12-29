@@ -29,8 +29,7 @@ double activation_function_sigmoid(const double input)
 
 double activation_function_sigmoid_derivative(const double input)
 {
-	const double df = activation_function_sigmoid(input);
-	return df * (1 - df);
+	return input * (1 - input);
 }
 
 double activation_function_relu(const double input)
@@ -148,6 +147,7 @@ layer::layer(uint32 numNeurons)
     activationValue.resize(numNeurons);
     gradients.resize(numNeurons);
     errors.resize(numNeurons);
+    biases.resize(numNeurons);
 }
 
 void layer::ForwardsPass(const column& inputs)
@@ -157,8 +157,8 @@ void layer::ForwardsPass(const column& inputs)
     for (uint32 n=0; n < numNeurons; n++)
     {
         activationValue[n] = inputs[n];
+        biases[n] = 1;
     }    
-    bias = 1;
 }
 
 // ------------------------------- denseLayer -------------------------------
@@ -173,11 +173,12 @@ denseLayer::denseLayer(uint32 numNeurons, ActivationFunction aFunc, layer* previ
     for (auto&& w : weights)
         w.resize(previous->numNeurons);
 
-    for (uint32 i=0; i < numNeurons; i++)
+    for (uint32 n=0; n < numNeurons; n++)
         for (uint32 j=0; j < previous->numNeurons; j++)
-            weights[i][j] = random_value();
+            weights[n][j] = random_value();
 
-    bias = random_value();
+    for (uint32 n=0; n < numNeurons; n++)
+        biases[n] = random_value();
 
     af = activationFuncPtrs[int(aFunc)][0];
     afD = activationFuncPtrs[int(aFunc)][1];
@@ -190,13 +191,14 @@ void denseLayer::ForwardsPass(const column& inputs)
 
     for (uint32 n=0; n < numNeurons; n++)
     {
-        double z = bias;
+        double z = biases[n];
         for (int i=0; i < inputs.size(); i++)
             z += weights[n][i] * inputs[i];
 
         activationValue[n] = af(z);
         assert(!isnan(activationValue[n]) && !isinf(activationValue[n]) && activationValue[n] < 10000);
-
+        //printf("ACT: %f/%f  i:%f,%f  w:%f,%f,%f,%f\n", z, activationValue[n], inputs[0], inputs[1], 
+        //    weights[0][0], weights[0][1], weights[1][0], weights[1][1]);
     }
 
     if (forClassification)
@@ -235,6 +237,7 @@ double layer::BackwardsPass(
             //err /= numNeurons;
         }
         gradients[n] = errors[n] * afD(predicted);
+        //printf("gradient[%u]: %f  er:%f pred:%f afD:%f\n", n, gradients[n], errors[n], predicted, afD(predicted));
     }
 
     // Update weights
@@ -245,12 +248,13 @@ double layer::BackwardsPass(
             // the input is the activation value of the neuron in the previous layer
             const double input = previousLayer.activationValue[i];
 
+            //printf("w: %f %u/%u\n", weights[n][i], n, i);
             weights[n][i] -= learning_rate * gradients[n] * input;
             assert(!isnan(weights[n][i]) && !isinf(weights[n][i]) && weights[n][i] < 1000);
         }
 
         // Update bias
-        bias -= learning_rate * gradients[n]; // bias input is always 1, so is omitted
+        biases[n] -= learning_rate * gradients[n]; // bias input is always 1, so is omitted
     }
     return pow(accumulatedError,2);
 }
@@ -312,6 +316,11 @@ void model::ForwardsPass(const column& inputs)
 
     for (int l=1; l < layers.size(); l++)
         layers[l]->ForwardsPass(layers[l-1]->activationValue);
+
+    //for (double a : layers.back()->activationValue)
+    //    printf("a: %f ", a);
+
+    //printf("\n");
 }
 
 void model::PredictSingleInput(const column& inputs, column& outputs)

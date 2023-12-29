@@ -43,7 +43,7 @@ struct layer
     column gradients;
     column errors;
     matrix weights;
-    double bias;
+    column biases;
     bool forClassification;
 
     ActivationFuncPtr af;

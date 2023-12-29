@@ -81,22 +81,22 @@ bool predict()
         assert(out1[0] == out2[0]);
     }
 
-    // {
-    //     model m;
-    //     layer* l = m.AddInputLayer(2);
-    //     l = m.AddDenseLayer(2, ActivationFunction::Relu, l);
-    //     layer* outputLayer = m.AddDenseLayer(softmaxTestSize, ActivationFunction::Softmax, l);
+    {
+        model m;
+        layer* l = m.AddInputLayer(2);
+        l = m.AddDenseLayer(2, ActivationFunction::Relu, l);
+        layer* outputLayer = m.AddDenseLayer(softmaxTestSize, ActivationFunction::Softmax, l);
 
-    //     column out1(softmaxTestSize), out2(softmaxTestSize);
-    //     m.PredictSingleInput(simpleInputs[0], out1);
-    //     m.PredictSingleInput(simpleInputs[0], out2);
-    //     assert(out1[0] == out2[0]);
-    //     assert(argmax(out1) == argmax(out2));
+        column out1(softmaxTestSize), out2(softmaxTestSize);
+        m.PredictSingleInput(simpleInputs[0], out1);
+        m.PredictSingleInput(simpleInputs[0], out2);
+        assert(out1[0] == out2[0]);
+        assert(argmax(out1) == argmax(out2));
 
-    //     double total = 0;
-    //     for (auto o : out1) total+= o;
-    //     assert(total == 1);
-    // }
+        double total = 0;
+        for (auto o : out1) total+= o;
+        assert(total == 1);
+    }
 
     
     // test individual neuron activation function value
@@ -104,7 +104,7 @@ bool predict()
         layer il(2);
         denseLayer dl(1, ActivationFunction::Sigmoid, &il);
 
-        dl.bias = 0.3;
+        dl.biases = {0.3};
         dl.weights[0][0] = 0.23;
         dl.weights[0][1] = -0.1;
 
@@ -126,7 +126,7 @@ bool predict()
         denseLayer dl(1, ActivationFunction::Sigmoid, &il);
         denseLayer ol(1, ActivationFunction::Sigmoid, &dl);        
 
-        dl.bias = 0.3;
+        dl.biases = {0.3};
         dl.weights[0][0] = 0.3;
 
         column inputs(1);
@@ -178,22 +178,22 @@ bool backwards()
         assert(loss2 != loss1);
     }
 
-    // {
-    //     model m;
-    //     layer* l = m.AddInputLayer(2);
-    //     l = m.AddDenseLayer(2, ActivationFunction::Relu, l);
-    //     layer* outputLayer = m.AddDenseLayer(softmaxTestSize, ActivationFunction::Softmax, l);
+    {
+        model m;
+        layer* l = m.AddInputLayer(2);
+        l = m.AddDenseLayer(2, ActivationFunction::Relu, l);
+        layer* outputLayer = m.AddDenseLayer(softmaxTestSize, ActivationFunction::Softmax, l);
 
-    //     column out1(softmaxTestSize);
+        column out1(softmaxTestSize);
 
-    //     m.PredictSingleInput(simpleInputs[0], out1);
-    //     double loss1 = m.BackwardsPass(softmaxTargets, 0.1);
+        m.PredictSingleInput(simpleInputs[0], out1);
+        double loss1 = m.BackwardsPass(softmaxTargets, 0.1);
 
-    //     m.PredictSingleInput(simpleInputs[1], out1);
-    //     double loss2 = m.BackwardsPass(softmaxTargets, 0.1);
+        m.PredictSingleInput(simpleInputs[1], out1);
+        double loss2 = m.BackwardsPass(softmaxTargets, 0.1);
 
-    //     assert(loss2 != loss1);
-    // }
+        assert(loss2 != loss1);
+    }
 
     return true;
 }
@@ -256,7 +256,7 @@ bool train()
     model m;
 
     layer* l = m.AddInputLayer(1);
-    l = m.AddDenseLayer(5, ActivationFunction::Sigmoid, l);
+    l = m.AddDenseLayer(8, ActivationFunction::Sigmoid, l);
     l = m.AddDenseLayer(1, ActivationFunction::Relu, l);
 
     for (uint32 i=0; i <100; i++)
@@ -306,9 +306,15 @@ bool seeds()
     layer* hidden = m.AddDenseLayer(2, ActivationFunction::Sigmoid, l);
     layer* output = m.AddDenseLayer(2, ActivationFunction::Sigmoid, hidden);
 
+    hidden->weights = { {0.13436424411240122, 0.8474337369372327}, {0.2550690257394217,  0.49543508709194095}};
+    hidden->biases = {0.763774618976614, 0.4494910647887381};
+
+    output->weights = { {0.651592972722763, 0.7887233511355132}, {0.02834747652200631, 0.8357651039198697}};
+    output->biases = {0.0938595867742349, 0.43276706790505337};
+
     for (uint32 i = 0; i < 20; i++)
     {
-        m.Train(seedsDataset, seedsOutputs, 10, 0.5);
+        m.Train(seedsDataset, seedsOutputs, 1, 0.5);
         printf("seeds -  loss sum:%f act:%f grad:%f err:%f\n", m.loss, output->activationValue[0],output->gradients[0],  output->errors[0]);
     }
 
@@ -327,7 +333,7 @@ int main(int, char**)
     check("layers", layers());
     check("predict", predict());
     check("backwards", backwards());
-    //check("train", train());
+    check("train", train());
     check("seeds", seeds());
     printf("tests end\n");
     return 1;
