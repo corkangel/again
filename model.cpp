@@ -136,7 +136,7 @@ static CostFuncPtr costFuncPtrs[5][2] = {
 // returns a random between 0 and 1
 double random_value()
 {
-    return ((rand() / 1000)) * 0.001;
+    return ((rand() % 1000)) * 0.001;
 }
 
 // ------------------------------- layer -------------------------------
@@ -147,6 +147,7 @@ layer::layer(uint32 numNeurons)
 {
     activationValue.resize(numNeurons);
     gradients.resize(numNeurons);
+    errors.resize(numNeurons);
 }
 
 void layer::ForwardsPass(const column& inputs)
@@ -215,24 +216,25 @@ double layer::BackwardsPass(
     for (uint32 n=0; n < numNeurons; n++)
     {
         const double predicted = activationValue[n];
-        double err = 0;
+        errors[n] = 0;
         
         if (nextLayer == nullptr)
         {
-           // this is the output layer
-           err = cfD(predicted, targets[n]);
+            // this is the output layer
+            errors[n] = cfD(predicted, targets[n]);
+
+            // for reporting
+            accumulatedError += pow(errors[n],2);
         }
         else
         {
-            err = 0;
             for (uint32 k=0; k < nextLayer->numNeurons; k++)
             {
-                err += nextLayer->weights[k][n] * nextLayer->gradients[k];
+                errors[n] += nextLayer->weights[k][n] * nextLayer->gradients[k];
             }
-            err /= numNeurons;
+            //err /= numNeurons;
         }
-        gradients[n] = err * afD(predicted);
-        accumulatedError += pow(err,2);
+        gradients[n] = errors[n] * afD(predicted);
     }
 
     // Update weights
@@ -244,13 +246,13 @@ double layer::BackwardsPass(
             const double input = previousLayer.activationValue[i];
 
             weights[n][i] -= learning_rate * gradients[n] * input;
-            assert(!isnan(weights[n][i]) && !isinf(weights[n][i]) && weights[n][i] < 100000);
+            assert(!isnan(weights[n][i]) && !isinf(weights[n][i]) && weights[n][i] < 1000);
         }
 
         // Update bias
         bias -= learning_rate * gradients[n]; // bias input is always 1, so is omitted
     }
-    return accumulatedError / numNeurons; //MSE
+    return pow(accumulatedError,2);
 }
 
 // ------------------------------- model -------------------------------
@@ -329,11 +331,8 @@ void model::PredictSingleInput(const column& inputs, column& outputs)
 
 double model::BackwardsPass(const column& targets, double learning_rate)
 {
-    // the error in between the final layer and the targets
-    double accumlatedError = 0;
-
     layer* outputLayer = layers.back();
-    accumlatedError += outputLayer->BackwardsPass(*layers[layers.size()-2], nullptr, learning_rate, targets, cf, cfD);
+    double accumlatedError = outputLayer->BackwardsPass(*layers[layers.size()-2], nullptr, learning_rate, targets, cf, cfD);
 
     // other layers
     for (uint32 l =uint32(layers.size()-2); l > 0; l--)
@@ -342,7 +341,7 @@ double model::BackwardsPass(const column& targets, double learning_rate)
         layer& currentLayer = *layers[l];
         layer& previousLayer = *layers[l-1];
         layer* nextLayer = layers[l+1];
-        accumlatedError += currentLayer.BackwardsPass(previousLayer, nextLayer, learning_rate, dummytargets, cf, cfD);
+        currentLayer.BackwardsPass(previousLayer, nextLayer, learning_rate, dummytargets, cf, cfD);
     }
     return accumlatedError;
 }
@@ -353,11 +352,12 @@ void model::Train(const matrix& allInputs, const matrix& allTargets, const int e
 
     for (int e=0; e < epochs; e++)
     {
-        const uint32 sz = allInputs.size();
-        for (uint32 i = 0; i < sz; i++)
+        loss = 0;
+        const size_t sz = allInputs.size();
+        for (size_t i = 0; i < sz; i++)
         {
             ForwardsPass(allInputs[i]);
-            loss = BackwardsPass(allTargets[i], learningRate);
+            loss += BackwardsPass(allTargets[i], learningRate);
         }
         // run just one of the inputs
         // int I = rand() % allInputs.size();

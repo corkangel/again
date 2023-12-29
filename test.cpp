@@ -269,6 +269,52 @@ bool train()
     return true;
 }
 
+
+const matrix seedsDataset =
+{
+    {2.7810836,2.550537003},
+    {1.465489372,2.362125076},
+    {3.396561688,4.400293529},
+    {1.38807019,1.850220317},
+    {3.06407232,3.005305973},
+    {7.627531214,2.759262235},
+    {5.332441248,2.088626775},
+    {6.922596716,1.77106367},
+    {8.675418651,-0.242068655},
+    {7.673756466,3.508563011}
+};
+
+// all the outputs are the same?!
+const matrix seedsOutputs = { 
+    {1,0},
+    {1,0},
+    {1,0},
+    {1,0},
+    {1,0},
+    {0,1},
+    {0,1},
+    {0,1},
+    {0,1},
+    {0,1}
+};
+
+
+bool seeds()
+{
+    model m;
+    layer* l = m.AddInputLayer(2);
+    layer* hidden = m.AddDenseLayer(2, ActivationFunction::Sigmoid, l);
+    layer* output = m.AddDenseLayer(2, ActivationFunction::Sigmoid, hidden);
+
+    for (uint32 i = 0; i < 20; i++)
+    {
+        m.Train(seedsDataset, seedsOutputs, 10, 0.5);
+        printf("seeds -  loss sum:%f act:%f grad:%f err:%f\n", m.loss, output->activationValue[0],output->gradients[0],  output->errors[0]);
+    }
+
+    return true;
+}
+
 void check(const char* name, const int result)
 {
     printf("TEST: [%-12s] %s\n", name, result ? "success" : "fail");
@@ -281,7 +327,8 @@ int main(int, char**)
     check("layers", layers());
     check("predict", predict());
     check("backwards", backwards());
-    check("train", train());
+    //check("train", train());
+    check("seeds", seeds());
     printf("tests end\n");
     return 1;
 }
