@@ -201,7 +201,7 @@ bool backwards()
 // numbers training set.
 // doubles and their corresponding integers
 
-const uint32 numbersBatchSize = 100;
+const uint32 numbersBatchSize = 10000;
 matrix numbersBatchDoubles;
 matrix numbersBatchIntegers;
 matrix numbersTestDoubles;
@@ -234,7 +234,9 @@ void initNumbers()
 
 double trainNumbers(model& m, uint32 numEpochs)
 {
-    m.Train(numbersBatchDoubles, numbersBatchIntegers, numEpochs, 0.02);
+    m.Train(numbersBatchDoubles, numbersBatchIntegers, numEpochs, 0.1);
+
+    printf("trainNumbers loss: %f\n", m.loss);
 
     double loss = 0;
     column predictions(1);
@@ -254,13 +256,13 @@ bool train()
     model m;
 
     layer* l = m.AddInputLayer(1);
-    l = m.AddDenseLayer(2, ActivationFunction::Sigmoid, l);
+    l = m.AddDenseLayer(5, ActivationFunction::Sigmoid, l);
     l = m.AddDenseLayer(1, ActivationFunction::Relu, l);
 
-    for (uint32 i=0; i < 50; i++)
+    for (uint32 i=0; i <100; i++)
     {
-        double loss = trainNumbers(m, 10);
-        printf("train numbers loss: %f\n", loss);
+        double loss = trainNumbers(m, 1);
+        //printf("train numbers loss: %f\n", loss);
     }
 
 

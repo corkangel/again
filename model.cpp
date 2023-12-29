@@ -338,11 +338,11 @@ double model::BackwardsPass(const column& targets, double learning_rate)
     // other layers
     for (uint32 l =uint32(layers.size()-2); l > 0; l--)
     {
-        column targets; // un-used
+        column dummytargets; // un-used
         layer& currentLayer = *layers[l];
         layer& previousLayer = *layers[l-1];
         layer* nextLayer = layers[l+1];
-        accumlatedError += currentLayer.BackwardsPass(previousLayer, nextLayer, learning_rate, targets, cf, cfD);
+        accumlatedError += currentLayer.BackwardsPass(previousLayer, nextLayer, learning_rate, dummytargets, cf, cfD);
     }
     return accumlatedError;
 }
@@ -353,10 +353,16 @@ void model::Train(const matrix& allInputs, const matrix& allTargets, const int e
 
     for (int e=0; e < epochs; e++)
     {
+        const uint32 sz = allInputs.size();
+        for (uint32 i = 0; i < sz; i++)
+        {
+            ForwardsPass(allInputs[i]);
+            loss = BackwardsPass(allTargets[i], learningRate);
+        }
         // run just one of the inputs
-        int I = rand() % allInputs.size();
-        ForwardsPass(allInputs[I]);
-        loss = BackwardsPass(allTargets[I], learningRate);
+        // int I = rand() % allInputs.size();
+        // ForwardsPass(allInputs[I]);
+        // loss = BackwardsPass(allTargets[I], learningRate);
 
     }
     epoch += epochs;
