@@ -53,20 +53,6 @@ void loadImages(const char* filename, matrix& images, matrix& categories)
     }
 }
 
-int argmax(const column& values)
-{
-    int index = 0;
-    double highest = -1000;
-    for(int i=0; i < values.size(); i++)
-    {
-        if (values[i] > highest)
-        {
-            highest = values[i];
-            index = i;
-        }
-    }
-    return index;
-}
 
 int main(int, char**)
 {
