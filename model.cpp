@@ -48,7 +48,7 @@ double activation_function_softmax(const double input)
     return input;
 }
 
-double activation_function_softwmax_derivative(const double input)
+double activation_function_softmax_derivative(const double input)
 {
     return input * (1 - input);
 }
@@ -80,7 +80,7 @@ static ActivationFuncPtr activationFuncPtrs[5][2] = {
     {nullptr, nullptr},
     {activation_function_sigmoid, activation_function_sigmoid_derivative},
     {activation_function_relu, activation_function_relu_derivative},
-    {activation_function_softmax, activation_function_softwmax_derivative},
+    {activation_function_softmax, activation_function_softmax_derivative},
     {nullptr, nullptr}
 };
 
@@ -114,9 +114,9 @@ double cost_function_crossEntropy(const double predicted, const double target)
     return - target*exp(predicted);
 }
 
-double cost_function_crossEntropy_derivative(const double predicted, const double target)
+double cost_function_crossEntropy_derivative(const double predicted, const double target) 
 {
-    return predicted - target;; //- target * exp(predicted);
+    return predicted - target;
 }
 
 static CostFuncPtr costFuncPtrs[5][2] = {
@@ -193,7 +193,7 @@ void denseLayer::ForwardsPass(const column& inputs)
             z += weights[n][i] * inputs[i];
 
         activationValue[n] = af(z);
-        assert(!isnan(activationValue[n]) && !isinf(activationValue[n]) && activationValue[n] < 100000);
+        assert(!isnan(activationValue[n]) && !isinf(activationValue[n]));// && activationValue[n] < 100000);
         //printf("ACT: %f/%f  i:%f,%f  w:%f,%f,%f,%f\n", z, activationValue[n], inputs[0], inputs[1], 
         //    weights[0][0], weights[0][1], weights[1][0], weights[1][1]);
     }
@@ -202,6 +202,14 @@ void denseLayer::ForwardsPass(const column& inputs)
         activationValue = softmax(activationValue);
 }
 
+double dotProduct(const column& a, const column& b)
+{
+    assert(a.size() == b.size());
+    double sum = 0;
+    for (int i=0; i < a.size(); i++)
+        sum += a[i] * b[i];
+    return sum;
+}
 
 double layer::BackwardsPass(
     const layer& previousLayer,
@@ -220,17 +228,9 @@ double layer::BackwardsPass(
         if (nextLayer == nullptr)
         {
             // this is the output layer
+            errors[n] = cfD(predicted, targets[n]);
 
-            if (forClassification)
-            {
-                errors[n] = predicted - targets[n]; //-targets[n] * exp(predicted - targets[n]);
-            }
-            else
-            {
-                errors[n] = cfD(predicted, targets[n]);
-            }
-
-            // for reporting
+            // only for reporting
             accumulatedError += pow(cf(predicted, targets[n]),2);
         }
         else
@@ -241,29 +241,32 @@ double layer::BackwardsPass(
             }
         }
 
-        if (forClassification)
-            gradients[n] = errors[n] * (predicted - targets[n]);
-        else
+        if (!forClassification)
+        {
             gradients[n] = errors[n] * afD(predicted);
+        }
+    }
+     
+    if (forClassification)
+    {
+        for (uint32 n=0; n < numNeurons; n++)
+        {
+             //const double predicted = activationValue[n];
+             //gradients[n] = predicted - targets[n];
 
-        //printf("gradient[%u]: %f  er:%f pred:%f afD:%f\n", n, gradients[n], errors[n], predicted, afD(predicted));
+            const double predicted = activationValue[n];
+            column tmp(numNeurons);
+            for (uint32 j=0; j < numNeurons; j++)
+            {
+                if (j == n)
+                    tmp[j] = predicted * (1 - predicted);
+                else
+                    tmp[j] = -predicted * activationValue[j];
+            }
+            gradients[n] = dotProduct(errors, tmp);
+        }
     }
 
-    // if (forClassification)
-    // {
-    //     // requires all the activationValue's to be populated before it can be run, so done in a second loop
-    //     for (uint32 n=0; n < numNeurons; n++)
-    //     {
-    //         const double predicted = activationValue[n];
-    //         double delta = (predicted * (1-predicted));
-    //         for (uint32 j = 0; j != numNeurons; j++)
-    //         {
-    //             //if (j != n)
-    //             //    delta += (-predicted  * activationValue[j]);
-    //         }
-    //         gradients[n] = errors[n] * delta;
-    //     }
-    // }
 
     // Update weights
     for (uint32 n=0; n < numNeurons; n++)
@@ -272,10 +275,7 @@ double layer::BackwardsPass(
         {
             // the input is the activation value of the neuron in the previous layer
             const double input = previousLayer.activationValue[i];
-
-            //printf("w: %f %u/%u\n", weights[n][i], n, i);
             weights[n][i] -= learning_rate * gradients[n] * input;
-            assert(!isnan(weights[n][i]) && !isinf(weights[n][i]) && weights[n][i] < 1000);
         }
 
         // Update bias

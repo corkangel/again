@@ -81,7 +81,7 @@ int main(int, char**)
 
 
     // stable random set of test indices
-    const int numTests = 1;    
+    const int numTests = 100;    
     std::array<int, numTests> testIds;
     for (int j=0; j< numTests; j++)
     testIds[j] = rand() % numTests;
