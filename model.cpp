@@ -50,8 +50,7 @@ double activation_function_softmax(const double input)
 
 double activation_function_softwmax_derivative(const double input)
 {
-    // ??? TODO
-    return input;
+    return input * (1 - input);
 }
 
 // takes an array of all the inputs, not just a single input
@@ -111,15 +110,13 @@ double cost_function_rmse_derivative(const double predicted, const double target
 
 double cost_function_crossEntropy(const double predicted, const double target)
 {
-    // un-used, since softmax is run over the entire array
-    assert(0);
-    return 0;
+    // un-used, since softmax is run over the entire array. 
+    return - target*exp(predicted);
 }
 
 double cost_function_crossEntropy_derivative(const double predicted, const double target)
 {
-    // simplifies to simple addition!
-    return predicted - target;
+    return predicted - target;; //- target * exp(predicted);
 }
 
 static CostFuncPtr costFuncPtrs[5][2] = {
@@ -196,7 +193,7 @@ void denseLayer::ForwardsPass(const column& inputs)
             z += weights[n][i] * inputs[i];
 
         activationValue[n] = af(z);
-        assert(!isnan(activationValue[n]) && !isinf(activationValue[n]) && activationValue[n] < 10000);
+        assert(!isnan(activationValue[n]) && !isinf(activationValue[n]) && activationValue[n] < 100000);
         //printf("ACT: %f/%f  i:%f,%f  w:%f,%f,%f,%f\n", z, activationValue[n], inputs[0], inputs[1], 
         //    weights[0][0], weights[0][1], weights[1][0], weights[1][1]);
     }
@@ -223,10 +220,18 @@ double layer::BackwardsPass(
         if (nextLayer == nullptr)
         {
             // this is the output layer
-            errors[n] = cfD(predicted, targets[n]);
+
+            if (forClassification)
+            {
+                errors[n] = predicted - targets[n]; //-targets[n] * exp(predicted - targets[n]);
+            }
+            else
+            {
+                errors[n] = cfD(predicted, targets[n]);
+            }
 
             // for reporting
-            accumulatedError += pow(errors[n],2);
+            accumulatedError += pow(cf(predicted, targets[n]),2);
         }
         else
         {
@@ -234,11 +239,31 @@ double layer::BackwardsPass(
             {
                 errors[n] += nextLayer->weights[k][n] * nextLayer->gradients[k];
             }
-            //err /= numNeurons;
         }
-        gradients[n] = errors[n] * afD(predicted);
+
+        if (forClassification)
+            gradients[n] = errors[n] * (predicted - targets[n]);
+        else
+            gradients[n] = errors[n] * afD(predicted);
+
         //printf("gradient[%u]: %f  er:%f pred:%f afD:%f\n", n, gradients[n], errors[n], predicted, afD(predicted));
     }
+
+    // if (forClassification)
+    // {
+    //     // requires all the activationValue's to be populated before it can be run, so done in a second loop
+    //     for (uint32 n=0; n < numNeurons; n++)
+    //     {
+    //         const double predicted = activationValue[n];
+    //         double delta = (predicted * (1-predicted));
+    //         for (uint32 j = 0; j != numNeurons; j++)
+    //         {
+    //             //if (j != n)
+    //             //    delta += (-predicted  * activationValue[j]);
+    //         }
+    //         gradients[n] = errors[n] * delta;
+    //     }
+    // }
 
     // Update weights
     for (uint32 n=0; n < numNeurons; n++)

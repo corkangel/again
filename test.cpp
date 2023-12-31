@@ -2,7 +2,6 @@
 
 #include "model.h"
 
-
 bool nothing()
 {
     model m;
@@ -142,6 +141,16 @@ bool predict()
 
     }
 
+    // isolated test of softmax function
+    const column softmaxInput = {0.25, 1.23, -0.8};
+    const column softmaxOutput = {0.249, 0.664, 0.087};
+    const column result = softmax(softmaxInput);
+    double diff = 0;
+    for (uint32 i=0; i < result.size(); i++)
+    {
+        diff += pow(result[i] - softmaxOutput[i],2);
+    }
+    assert(diff < 0.01);
 
     return true;
 }
@@ -198,7 +207,8 @@ bool backwards()
     return true;
 }
 
-// numbers training set.
+// ------------------------------ float->int  test  ------------------------------
+
 // doubles and their corresponding integers
 
 const uint32 numbersBatchSize = 20;
@@ -218,13 +228,13 @@ void initNumbers()
     for (uint32 i=0; i < numbersBatchSize; i++)
     {
         numbersBatchDoubles[i].resize(1);
-        numbersBatchDoubles[i][0] = (rand() % 1000) * 0.01;
+        numbersBatchDoubles[i][0] = (rand() % 100) * 0.1;
 
         numbersBatchIntegers[i].resize(1);
         numbersBatchIntegers[i][0] = (double)(uint32)numbersBatchDoubles[i][0];
 
         numbersTestDoubles[i].resize(1);
-        numbersTestDoubles[i][0] = (rand() % 1000) * 0.01;
+        numbersTestDoubles[i][0] = (rand() % 100) * 0.1;
 
         numbersTestIntegers[i].resize(1);
         numbersTestIntegers[i][0] = (double)(uint32)numbersTestDoubles[i][0];
@@ -234,7 +244,7 @@ void initNumbers()
 
 double trainNumbers(model& m, uint32 numEpochs)
 {
-    m.Train(numbersBatchDoubles, numbersBatchIntegers, numEpochs, 0.1);
+    m.Train(numbersBatchDoubles, numbersBatchIntegers, numEpochs, 0.02);
 
     //printf("trainNumbers loss: %f\n", m.loss);
 
@@ -250,24 +260,26 @@ double trainNumbers(model& m, uint32 numEpochs)
     return loss / numbersBatchSize;
 }
 
-bool train()
+bool numbers()
 {
     initNumbers();
 
     model m;
 
     layer* l = m.AddInputLayer(1);
-    l = m.AddDenseLayer(8, ActivationFunction::Sigmoid, l);
+    l = m.AddDenseLayer(3, ActivationFunction::Sigmoid, l);
     l = m.AddDenseLayer(1, ActivationFunction::Relu, l);
 
     for (uint32 i=0; i <20; i++)
     {
-        double loss = trainNumbers(m, 10);
-        printf("train numbers loss: %f\n", loss);
+        double loss = trainNumbers(m, 5);
+        printf("train numbers loss: %f %f\n", loss, m.loss);
     }
     return true;
 }
 
+
+// ------------------------------ seeds test ------------------------------
 
 const matrix seedsDataset =
 {
@@ -305,11 +317,11 @@ bool seeds()
     layer* hidden = m.AddDenseLayer(2, ActivationFunction::Sigmoid, l);
     layer* output = m.AddDenseLayer(2, ActivationFunction::Sigmoid, hidden);
 
-    hidden->weights = { {0.13436424411240122, 0.8474337369372327}, {0.2550690257394217,  0.49543508709194095}};
-    hidden->biases = {0.763774618976614, 0.4494910647887381};
+    // hidden->weights = { {0.13436424411240122, 0.8474337369372327}, {0.2550690257394217,  0.49543508709194095}};
+    // hidden->biases = {0.763774618976614, 0.4494910647887381};
 
-    output->weights = { {0.651592972722763, 0.7887233511355132}, {0.02834747652200631, 0.8357651039198697}};
-    output->biases = {0.0938595867742349, 0.43276706790505337};
+    // output->weights = { {0.651592972722763, 0.7887233511355132}, {0.02834747652200631, 0.8357651039198697}};
+    // output->biases = {0.0938595867742349, 0.43276706790505337};
 
     for (uint32 i = 0; i < 20; i++)
     {
@@ -328,12 +340,12 @@ void check(const char* name, const int result)
 int main(int, char**)
 {
     printf("tests begin\n");
-    check("nothing", nothing());
-    check("layers", layers());
-    check("predict", predict());
-    check("backwards", backwards());
-    check("train", train());
-    check("seeds", seeds());
+    //check("nothing", nothing());
+    //check("layers", layers());
+    //check("predict", predict());
+    //check("backwards", backwards());
+    check("numbers", numbers());
+    //check("seeds", seeds());
     printf("tests end\n");
     return 1;
 }

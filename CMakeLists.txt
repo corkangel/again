@@ -21,7 +21,13 @@ target_compile_features(images PRIVATE cxx_std_17)
 add_executable(test test.cpp model.cpp)
 target_compile_features(images PRIVATE cxx_std_17)
 
-install(TARGETS again images test)
+add_executable(classification classification.cpp model.cpp)
+target_compile_features(classification PRIVATE cxx_std_17)
+
+add_executable(test_classification test_classification.cpp model.cpp)
+target_compile_features(test_classification PRIVATE cxx_std_17)
+
+install(TARGETS again images test classification test_classification)
 
 set(CPACK_PROJECT_NAME ${PROJECT_NAME})
 set(CPACK_PROJECT_VERSION ${PROJECT_VERSION})

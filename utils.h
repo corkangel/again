@@ -13,3 +13,4 @@ using uint64 = unsigned long;
 using int64 = long;
 
 int argmax(const column& values);
+column softmax(const column& inputs);
